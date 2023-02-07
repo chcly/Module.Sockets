@@ -59,14 +59,25 @@ namespace Rt2::Sockets
             _client = create(AddrINet, Stream);
             if (_client == InvalidSocket)
                 throw Exception("failed to create socket");
-            
+                        constexpr char opt = 1;
+            if (setOption(_client,
+                          SocketLevel,
+                          ReuseAddress,
+                          &opt,
+                          sizeof(char)) != Ok)
+            {
+                throw Exception("Failed to set socket option");
+            }
+
+
             if (Net::connect(_client, ipv4, port) != Ok)
                 throw Exception("Failed to connect to ", ipv4, ':', port);
 
             _status = 0;
         }
-        catch (...)
+        catch (Exception &ex)
         {
+            Console::writeError(ex.what());
             _status = -2;
         }
     }

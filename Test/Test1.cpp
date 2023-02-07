@@ -22,10 +22,10 @@ GTEST_TEST(Sockets, Server_001)
             EXPECT_EQ(msg, "Hello1");
         });
 
-    const Sockets::ClientSocket c1("127.0.0.1", 5000);
+    const Sockets::ClientSocket c1("127.0.0.1", 8080);
     EXPECT_TRUE(c1.isOpen());
     c1.write("Hello1");
-    const Sockets::ClientSocket c2("127.0.0.1", 5000);
+    const Sockets::ClientSocket c2("127.0.0.1", 8080);
     EXPECT_TRUE(c2.isOpen());
     c2.write("Hello1");
 }
