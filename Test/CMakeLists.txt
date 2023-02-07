@@ -30,19 +30,19 @@ configure_file(
 	${CMAKE_CURRENT_BINARY_DIR}/TestDirectory.h
 )
 
-include_directories(. ${GTEST_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(. ${GTEST_INCLUDE} ${CMAKE_CURRENT_BINARY_DIR} ${Utils_INCLUDE} ${Sockets_INCLUDE})
 
 add_executable(
     ${TestTargetName}
     ${TestTarget_SOURCE}
 )
-target_link_libraries(${TestTargetName} ${GTEST_LIBRARY})
+target_link_libraries(${TestTargetName} ${GTEST_LIBRARY} ${Utils_LIBRARY} ${Sockets_LIBRARY})
 
 if (TargetFolders)
     set_target_properties(${TestTargetName} PROPERTIES FOLDER "${TargetGroup}")
 endif()
 
 
-if (Template_AUTO_RUN_TEST)
+if (Sockets_AUTO_RUN_TEST)
     run_test(${TestTargetName})
 endif()

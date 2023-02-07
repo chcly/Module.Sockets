@@ -1,15 +1,28 @@
 #include <cstdio>
+#include "Sockets/PlatformSocket.h"
 #include "gtest/gtest.h"
-#include "TestDirectory.h"
+#include "Utils/Console.h"
 
-GTEST_TEST(Test1, AlwaysTrue)
-{
-    puts(ABSOLUTE_TEST_DIRECTORY);
-    puts(GetTestFilePath("inp.ans"));
-    EXPECT_EQ(1, 1);
-}
 
-GTEST_TEST(Test1, AlwaysFalse)
+using namespace Rt2;
+
+
+GTEST_TEST(Sockets, AlwaysTrue)
 {
-    EXPECT_NE(1, 0);
+    Sockets::initialize();
+
+    Sockets::HostInfo inf;
+    Sockets::getHostInfo(inf, "google.com");
+
+    for (const auto& [name, address, family, type, protocol] : inf)
+    {
+        Console::writeLine("==============");
+        Console::writeLine("Host          : ", name);
+        Console::writeLine("Address       : ", address);
+        Console::writeLine("Protocol      : ", toString(protocol));
+        Console::writeLine("AddressFamily : ", toString(family));
+        Console::writeLine("SocketType    : ", toString(type));
+        Console::writeLine("==============");
+        Console::writeLine("");
+    }
 }

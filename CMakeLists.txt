@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(Template)
+project(Sockets)
 
 # Use C++-17 by default.
 enable_language(CXX)
@@ -11,40 +11,41 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # CMake - Contains project local modules.
 #
 # CMake/Modules - Contains project independent modules.
-#   GitUpdate.cmake invokes python ${Template_SOURCE_DIR}/gitupdate.py
+#   GitUpdate.cmake invokes python ${Sockets_SOURCE_DIR}/gitupdate.py
 #   to pull all submodules and update to head.
 #   If this fails, it will attempt to invoke git directly to pull 
 #   submodules. 
 list(APPEND CMAKE_MODULE_PATH 
-  ${Template_SOURCE_DIR}/CMake 
-  ${Template_SOURCE_DIR}/CMake/Modules
+  ${Sockets_SOURCE_DIR}/CMake 
+  ${Sockets_SOURCE_DIR}/CMake/Modules
 )
-include(${Template_SOURCE_DIR}/CMake/Configure.cmake)
+include(${Sockets_SOURCE_DIR}/CMake/Configure.cmake)
 if (NOT Configure_SUCCEEDED)
    return()
 endif()
 
 
 
-if (Template_ExternalTarget)
-    set(TargetFolders ${Template_TargetFolders})
-    set(TargetName    ${Template_TargetName})
-    set(TargetGroup   ${Template_TargetGroup})
+if (Sockets_ExternalTarget)
+    set(TargetFolders ${Sockets_TargetFolders})
+    set(TargetName    ${Sockets_TargetName})
+    set(TargetGroup   ${Sockets_TargetGroup})
 else()
     add_subdirectory(CMake)
+    add_subdirectory(Internal/Utils)
 
     set(TargetFolders TRUE)
-    set(TargetName Template)
+    set(TargetName Sockets)
     set(TargetGroup )
 
-    set(Template_INCLUDE  ${Template_SOURCE_DIR}/Source)
-    set(Template_LIBRARY  ${TargetName})
+    set(Sockets_INCLUDE  ${Sockets_SOURCE_DIR})
+    set(Sockets_LIBRARY  ${TargetName})
 endif()
 
-add_subdirectory(Source)
+add_subdirectory(Sockets)
 
-if (Template_BUILD_TEST)
-    if (NOT Template_ExternalTarget)
+if (Sockets_BUILD_TEST)
+    if (NOT Sockets_ExternalTarget)
         add_gtest_source(Extern/ThirdParty)
     endif()
 
