@@ -9,4 +9,4 @@
 	url = git@github.com:CharlesCarley/Internal.Utils.git
 [submodule "Internal/Threads"]
 	path = Internal/Threads
-	url = https://github.com/CharlesCarley/Internal.Threads
+	url =  git@github.com:CharlesCarley/Internal.Threads.git
