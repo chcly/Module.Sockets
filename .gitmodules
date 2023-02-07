@@ -1,0 +1,6 @@
+[submodule "Test/googletest"]
+	path = Test/googletest
+	url = https://github.com/CharlesCarley/googletest.git
+[submodule "CMake/Modules"]
+	path = CMake/Modules
+	url = https://github.com/CharlesCarley/CMakeModules.git
