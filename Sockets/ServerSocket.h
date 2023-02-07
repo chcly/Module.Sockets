@@ -20,36 +20,51 @@
 -------------------------------------------------------------------------------
 */
 #pragma once
+#include <functional>
 #include "Sockets/PlatformSocket.h"
+#include "Threads/CriticalSection.h"
+#include "Threads/Mutex.h"
+#include "Utils/Definitions.h"
 
-namespace Rt2::Sockets::Net
+namespace Rt2::Sockets
 {
-    class Connection
+    class ServerThread;
+
+    using MessageFunction = std::function<void(const String& message)>;
+
+    class ServerSocket
     {
     private:
-        Net::SocketInputAddress _inp;
+        friend class ServerThread;
+
+
+        mutable Threads::CriticalSection _sec{};
+        Net::Socket                      _server{Net::InvalidSocket};
+        I8                               _status{-1};
+        ServerThread*                    _main{nullptr};
+        MessageFunction                  _message{nullptr};
+
+        void dispatch(const String& msg) const;
 
     public:
-        explicit Connection() :
-            _inp()
-        {
-        }
+        ServerSocket(const String& ipv4, uint16_t port);
+        ~ServerSocket();
 
-        Net::SocketInputAddress& getInput()
-        {
-            return _inp;
-        }
+        void onMessageReceived(const MessageFunction& function);
 
+        void start();
 
-        String getAddress() const
-        {
-            return Net::NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
-        }
+        bool isOpen() const;
 
-        uint16_t getPort() const
-        {
-            return Net::NetworkToHostShort(_inp.sin_port);
-        }
+    private:
+        void open(const String& ipv4, uint16_t port);
     };
 
-}  // namespace Hack::Sockets
+
+    inline bool ServerSocket::isOpen() const
+    {
+        return _status == 0;
+    }
+
+
+}  // namespace Rt2::Sockets

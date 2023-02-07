@@ -42,7 +42,7 @@
  * between platform socket implementations.
  *
  */
-namespace Rt2::Sockets
+namespace Rt2::Sockets::Net
 {
     constexpr short MaxBufferSize = 0x7FFF;
 
@@ -116,6 +116,8 @@ namespace Rt2::Sockets
         SendWaitMin       = SO_RCVLOWAT,
         SendWaitMax       = SO_RCVTIMEO,
     };
+
+    extern void ensureInitialized();
 
     extern void initialize();
     extern void finalize();

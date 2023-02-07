@@ -33,6 +33,7 @@ if (Sockets_ExternalTarget)
 else()
     add_subdirectory(CMake)
     add_subdirectory(Internal/Utils)
+    add_subdirectory(Internal/Threads)
 
     set(TargetFolders TRUE)
     set(TargetName Sockets)

@@ -56,6 +56,14 @@ DefineExternalTargetEx(
 )
 
 
+DefineExternalTargetEx(
+    Threads Extern
+    ${Sockets_SOURCE_DIR}/Internal/Threads 
+    ${Sockets_SOURCE_DIR}/Internal/Threads
+    ${Sockets_BUILD_TEST}
+    ${Sockets_AUTO_RUN_TEST}
+)
+
 set(ExtraFlags )
 if (MSVC)
     # globally disable scoped enum warnings

@@ -21,35 +21,33 @@
 */
 #pragma once
 #include "Sockets/PlatformSocket.h"
+#include "Utils/Definitions.h"
 
-namespace Rt2::Sockets::Net
+namespace Rt2::Sockets
 {
-    class Connection
+    class ClientSocket
     {
     private:
-        Net::SocketInputAddress _inp;
+        Net::Socket _client{Net::InvalidSocket};
+        I8           _status{-1};
 
     public:
-        explicit Connection() :
-            _inp()
-        {
-        }
+        ClientSocket(const String& ipv4, uint16_t port);
+        ~ClientSocket();
 
-        Net::SocketInputAddress& getInput()
-        {
-            return _inp;
-        }
+        void write(const String& msg) const;
 
+        bool isOpen() const;
 
-        String getAddress() const
-        {
-            return Net::NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
-        }
-
-        uint16_t getPort() const
-        {
-            return Net::NetworkToHostShort(_inp.sin_port);
-        }
+    private:
+        void open(const String& ipv4, uint16_t port);
     };
 
-}  // namespace Hack::Sockets
+
+    inline bool ClientSocket::isOpen() const
+    {
+        return _status == 0;
+    }
+
+
+}  // namespace Rt2::Sockets

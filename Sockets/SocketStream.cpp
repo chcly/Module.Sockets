@@ -24,9 +24,9 @@
 
 namespace Rt2::Sockets
 {
-    SocketStream::SocketStream(const Socket sock) :
+    SocketStream::SocketStream(const Net::Socket sock) :
         _sock(sock),
-        _status(Ok)
+        _status(Net::Ok)
     {
     }
 
@@ -37,13 +37,13 @@ namespace Rt2::Sockets
             return bytesRead;
         if (length > 0x7FFFFFFF)
             return bytesRead;
+
         try
         {
-            int br    = 0;
-            _status   = readBuffer(_sock,
-                                 (char*)destination,
-                                 (int)length,
-                                 br);
+            int br = 0;
+
+            _status   = Net::readBuffer(_sock, (char*)destination, (int)length, br);
+
             bytesRead = (size_t)br;
         }
         catch (Exception& ex)
@@ -53,4 +53,4 @@ namespace Rt2::Sockets
         return bytesRead;
     }
 
-}  // namespace Hack::Sockets
+}  // namespace Rt2::Sockets

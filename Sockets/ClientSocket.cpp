@@ -19,37 +19,55 @@
   3. This notice may not be removed or altered from any source distribution.
 -------------------------------------------------------------------------------
 */
-#pragma once
-#include "Sockets/PlatformSocket.h"
+#include "Sockets/ClientSocket.h"
+#include "Sockets/Connection.h"
+#include "Threads/Thread.h"
+#include "Utils/Exception.h"
 
-namespace Rt2::Sockets::Net
+namespace Rt2::Sockets
 {
-    class Connection
+    ClientSocket::ClientSocket(const String& ipv4, const uint16_t port)
     {
-    private:
-        Net::SocketInputAddress _inp;
+        Net::ensureInitialized();
+        open(ipv4, port);
+    }
 
-    public:
-        explicit Connection() :
-            _inp()
+    ClientSocket::~ClientSocket()
+    {
+        if (_client)
         {
+            Net::close(_client);
+            _client = Net::InvalidSocket;
         }
+    }
 
-        Net::SocketInputAddress& getInput()
+    void ClientSocket::write(const String& msg) const
+    {
+        if (_client)
         {
-            return _inp;
+            Net::writeBuffer(_client, msg.c_str(), msg.size());
+            
         }
+    }
 
+    void ClientSocket::open(const String& ipv4, uint16_t port)
+    {
+        using namespace Net;
 
-        String getAddress() const
+        try
         {
-            return Net::NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
-        }
+            _client = create(AddrINet, Stream);
+            if (_client == InvalidSocket)
+                throw Exception("failed to create socket");
+            
+            if (Net::connect(_client, ipv4, port) != Ok)
+                throw Exception("Failed to connect to ", ipv4, ':', port);
 
-        uint16_t getPort() const
+            _status = 0;
+        }
+        catch (...)
         {
-            return Net::NetworkToHostShort(_inp.sin_port);
+            _status = -2;
         }
-    };
-
-}  // namespace Hack::Sockets
+    }
+}  // namespace Rt2::Sockets

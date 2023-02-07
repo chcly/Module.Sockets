@@ -34,9 +34,37 @@
 #include <cstring>
 #endif
 
-namespace Rt2::Sockets
+namespace Rt2::Sockets::Net
 {
     class Connection;
+
+    void ensureInitialized()
+    {
+        class Setup
+        {
+        public:
+            Setup()
+            {
+                try
+                {
+                    initialize();
+                }
+                catch (Exception& ex)
+                {
+                    Console::writeLine(ex.what());
+                }
+            }
+            ~Setup()
+            {
+                Console::writeLine("finished");
+                finalize();
+            }
+        };
+
+        static Setup inst;
+    }
+
+
 
     void initialize()
     {
@@ -125,7 +153,6 @@ namespace Rt2::Sockets
 
     String toString(const SocketType& socketType)
     {
-
         switch (socketType)
         {
         case Datagram:
@@ -144,6 +171,7 @@ namespace Rt2::Sockets
             return "Other";
         }
     }
+
 
     Status setOption(Socket&             sock,
                      const ProtocolLevel protocolLevel,
@@ -167,9 +195,9 @@ namespace Rt2::Sockets
     }
 
     void constructInputAddress(SocketInputAddress& dest,
-                                const AddressFamily addressFamily,
-                                const uint16_t      port,
-                                const String&       address)
+                               const AddressFamily addressFamily,
+                               const uint16_t      port,
+                               const String&       address)
     {
         dest = {};
 
@@ -294,7 +322,6 @@ namespace Rt2::Sockets
     Socket accept(const Socket& sock, Connection& result)
     {
         SocketInputAddress& dest = result.getInput();
-
         memset(&dest, 0, sizeof(SocketInputAddress));
 
         int sz = sizeof(SocketInputAddress);
@@ -548,7 +575,7 @@ namespace Rt2::Sockets
     String toString(const HostInfo& info)
     {
         OutputStringStream oss;
-        int i = 0;
+        int                i = 0;
         for (const auto& [name, address, family, type, protocol] : info)
         {
             oss << "Host[" << i++ << "] {" << std::endl;
@@ -562,4 +589,4 @@ namespace Rt2::Sockets
         return oss.str();
     }
 
-}  // namespace Hack::Sockets
+}  // namespace Rt2::Sockets::Plat
