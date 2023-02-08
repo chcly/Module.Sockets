@@ -7,6 +7,3 @@
 [submodule "Internal/Utils"]
 	path = Internal/Utils
 	url = git@github.com:CharlesCarley/Internal.Utils.git
-[submodule "Internal/Threads"]
-	path = Internal/Threads
-	url =  git@github.com:CharlesCarley/Internal.Threads.git
