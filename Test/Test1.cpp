@@ -10,7 +10,8 @@ using namespace Rt2;
 
 GTEST_TEST(Sockets, Server_001)
 {
-    Sockets::ServerSocket ss("127.0.0.1", 8080);
+    constexpr U16 port = 5555;
+    Sockets::ServerSocket ss("127.0.0.1", port);
     EXPECT_TRUE(ss.isOpen());
     ss.start();
 
@@ -22,10 +23,10 @@ GTEST_TEST(Sockets, Server_001)
             EXPECT_EQ(msg, "Hello1");
         });
 
-    const Sockets::ClientSocket c1("127.0.0.1", 8080);
+    const Sockets::ClientSocket c1("127.0.0.1", port);
     EXPECT_TRUE(c1.isOpen());
     c1.write("Hello1");
-    const Sockets::ClientSocket c2("127.0.0.1", 8080);
+    const Sockets::ClientSocket c2("127.0.0.1", port);
     EXPECT_TRUE(c2.isOpen());
     c2.write("Hello1");
 }

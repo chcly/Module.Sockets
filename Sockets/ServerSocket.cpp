@@ -32,9 +32,9 @@ namespace Rt2::Sockets
     class ServerThread final : public Threads::Thread
     {
     private:
-        bool                     _status{true};
-        const ServerSocket*      _socket;
-        Threads::CriticalSection _sec;
+        bool                _status{true};
+        const ServerSocket* _socket;
+        Threads::Mutex      _sec;
 
     private:
         void readSocket(Net::Socket socket) const;
@@ -57,7 +57,7 @@ namespace Rt2::Sockets
 
         void kill()
         {
-            Threads::CriticalSectionLock sl(&_sec);
+            Threads::ScopeLock sl(&_sec);
             _status = false;
         }
     };
@@ -83,13 +83,16 @@ namespace Rt2::Sockets
         {
             try
             {
-                // const Threads::Task task(
-                //     [this, sock]()
-                //     {
-                this->readSocket(sock);
-                Net::close(sock);
-                //    });
-                //(void)task.invoke();
+                const Threads::Task task(
+                    [this, sock]()
+                    {
+                        this->readSocket(sock);
+                        Net::close(sock);
+                        int i = 0;
+                        while (++i < 1000)
+                            ;
+                    });
+                (void)task.invoke();
             }
             catch (...)
             {
@@ -151,21 +154,19 @@ namespace Rt2::Sockets
 
         try
         {
-            _server = create(AddrINet, Stream);
+            _server = create(AddrINet, Stream, ProtoUnspecified);
             if (_server == InvalidSocket)
                 throw Exception("failed to create socket");
 
-            constexpr char opt = 1;
+            constexpr int opt = 1;
             if (setOption(_server,
                           SocketLevel,
                           ReuseAddress,
                           &opt,
-                          sizeof(char)) != Ok)
+                          sizeof(int)) != Ok)
             {
                 throw Exception("Failed to set socket option");
             }
-
-
 
             SocketInputAddress host;
             constructInputAddress(host, AddrINet, port, ipv4);
@@ -178,8 +179,9 @@ namespace Rt2::Sockets
 
             _status = 0;
         }
-        catch (...)
+        catch (Exception& ex)
         {
+            Console::writeError(ex.what());
             _status = -2;
         }
     }
