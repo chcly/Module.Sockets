@@ -9,8 +9,8 @@ jobs:
      - uses: webfactory/ssh-agent@v0.7.0
        with:
          ssh-private-key: |
-                ${{ secrets.UTILS_PRIVATE }}
                 ${{ secrets.THREADS_PRIVATE }}
+                ${{ secrets.UTILS_PRIVATE }}
 
      - name: Configure
        run: cmake -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON .
