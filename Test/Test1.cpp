@@ -8,9 +8,17 @@
 
 using namespace Rt2;
 
+void stall(int ms)
+{
+    while (ms-- > 0)
+        ;
+}
+
+
+
 GTEST_TEST(Sockets, Server_001)
 {
-    constexpr U16 port = 5555;
+    constexpr U16         port = 5555;
     Sockets::ServerSocket ss("127.0.0.1", port);
     EXPECT_TRUE(ss.isOpen());
     ss.start();
@@ -29,6 +37,8 @@ GTEST_TEST(Sockets, Server_001)
     const Sockets::ClientSocket c2("127.0.0.1", port);
     EXPECT_TRUE(c2.isOpen());
     c2.write("Hello1");
+
+    stall(100000);
 }
 
 

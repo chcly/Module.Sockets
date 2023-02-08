@@ -57,7 +57,7 @@ namespace Rt2::Sockets
         bool isOpen() const;
 
     private:
-        void open(const String& ipv4, uint16_t port);
+        void open(const String& ipv4, uint16_t port, int32_t backlog=1);
     };
 
 

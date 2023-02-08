@@ -32,9 +32,9 @@ namespace Rt2::Sockets
     class ServerThread final : public Threads::Thread
     {
     private:
-        bool                _status{true};
-        const ServerSocket* _socket;
-        Threads::Mutex      _sec;
+        bool                             _status{true};
+        const ServerSocket*              _socket;
+        mutable Threads::CriticalSection _sec;
 
     private:
         void readSocket(Net::Socket socket) const;
@@ -57,7 +57,7 @@ namespace Rt2::Sockets
 
         void kill()
         {
-            Threads::ScopeLock sl(&_sec);
+            Threads::CriticalSectionLock sl(&_sec);
             _status = false;
         }
     };
@@ -69,16 +69,17 @@ namespace Rt2::Sockets
         String message;
         in >> message;
 
-        _socket->dispatch(message);
+        {
+            Threads::CriticalSectionLock sl(&_sec);
+            _socket->dispatch(message);
+        }
     }
 
     void ServerThread::acceptConnections() const
     {
         Net::Connection client;
 
-        if (const Net::Socket sock = Net::accept(
-                _socket->_server,
-                client);
+        if (const Net::Socket sock = Net::accept(_socket->_server, client);
             sock != Net::InvalidSocket)
         {
             try
@@ -88,9 +89,6 @@ namespace Rt2::Sockets
                     {
                         this->readSocket(sock);
                         Net::close(sock);
-                        int i = 0;
-                        while (++i < 1000)
-                            ;
                     });
                 (void)task.invoke();
             }
@@ -148,7 +146,7 @@ namespace Rt2::Sockets
 
 
 
-    void ServerSocket::open(const String& ipv4, uint16_t port)
+    void ServerSocket::open(const String& ipv4, uint16_t port, int32_t backlog)
     {
         using namespace Net;
 
@@ -174,7 +172,7 @@ namespace Rt2::Sockets
             if (bind(_server, host) != Ok)
                 throw Exception("Failed to bind server socket to ", ipv4, ':', port);
 
-            if (listen(_server, 100) != Ok)
+            if (listen(_server, backlog) != Ok)
                 throw Exception("Failed to listen on the server socket");
 
             _status = 0;
