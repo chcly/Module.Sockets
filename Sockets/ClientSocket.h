@@ -29,7 +29,6 @@ namespace Rt2::Sockets
     {
     private:
         Net::Socket _client{Net::InvalidSocket};
-        I8           _status{-1};
 
     public:
         ClientSocket(const String& ipv4, uint16_t port);
@@ -41,13 +40,13 @@ namespace Rt2::Sockets
 
     private:
         void open(const String& ipv4, uint16_t port);
-    };
 
+        void close();
+    };
 
     inline bool ClientSocket::isOpen() const
     {
-        return _status == 0;
+        return _client != Net::InvalidSocket;
     }
-
 
 }  // namespace Rt2::Sockets

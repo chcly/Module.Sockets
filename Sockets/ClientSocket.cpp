@@ -34,6 +34,35 @@ namespace Rt2::Sockets
 
     ClientSocket::~ClientSocket()
     {
+        close();
+    }
+
+    void ClientSocket::write(const String& msg) const
+    {
+        if (_client)
+            Net::writeBuffer(_client, msg.c_str(), msg.size());
+    }
+
+    void ClientSocket::open(const String& ipv4, uint16_t port)
+    {
+        try
+        {
+            _client = Net::create(Net::AddrINet, Net::Stream);
+            if (_client == Net::InvalidSocket)
+                throw Exception("failed to create socket");
+
+            if (Net::connect(_client, ipv4, port) != Net::Ok)
+                throw Exception("failed to connect to ", ipv4, ':', port);
+        }
+        catch (Exception& ex)
+        {
+            Console::writeError(ex.what());
+            close();
+        }
+    }
+
+    void ClientSocket::close()
+    {
         if (_client)
         {
             Net::close(_client);
@@ -41,34 +70,4 @@ namespace Rt2::Sockets
         }
     }
 
-    void ClientSocket::write(const String& msg) const
-    {
-        if (_client)
-        {
-            Net::writeBuffer(_client, msg.c_str(), msg.size());
-            
-        }
-    }
-
-    void ClientSocket::open(const String& ipv4, uint16_t port)
-    {
-        using namespace Net;
-
-        try
-        {
-            _client = create(AddrINet, Stream);
-            if (_client == InvalidSocket)
-                throw Exception("failed to create socket");
-
-            if (Net::connect(_client, ipv4, port) != Ok)
-                throw Exception("Failed to connect to ", ipv4, ':', port);
-
-            _status = 0;
-        }
-        catch (Exception &ex)
-        {
-            Console::writeError(ex.what());
-            _status = -2;
-        }
-    }
 }  // namespace Rt2::Sockets

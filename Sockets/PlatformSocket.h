@@ -174,9 +174,11 @@ namespace Rt2::Sockets::Net
         ProtocolFamily protocol{ProtoUnspecified};
     };
 
+
     using HostInfo = std::vector<Host>;
 
     bool getHostInfo(HostInfo& inf, const String& name);
+    Host INetHost(const HostInfo& inf);
 
     extern String toString(const HostInfo& info);
 

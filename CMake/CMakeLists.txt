@@ -9,7 +9,8 @@ set(TargetGroup CMakePredefinedTargets)
 set(GroupRoot ../)
 
 set_ro_group(TargetName_SRC
-    :${GroupRoot}/.github/workflows/*.yml
+    Actions:${GroupRoot}/.github/workflows/*.yml
+    Format:${GroupRoot}/.clang-format
     :${GroupRoot}/CMakeLists.txt
     :${GroupRoot}/README.md
     Config:${GroupRoot}/CMake/CMakeLists.txt

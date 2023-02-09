@@ -27,29 +27,23 @@ namespace Rt2::Sockets::Net
     class Connection
     {
     private:
-        Net::SocketInputAddress _inp;
+        SocketInputAddress _inp{};
 
     public:
-        explicit Connection() :
-            _inp()
-        {
-        }
-
-        Net::SocketInputAddress& getInput()
+        SocketInputAddress& getInput()
         {
             return _inp;
         }
 
-
         String getAddress() const
         {
-            return Net::NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
+            return NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
         }
 
         uint16_t getPort() const
         {
-            return Net::NetworkToHostShort(_inp.sin_port);
+            return NetworkToHostShort(_inp.sin_port);
         }
     };
 
-}  // namespace Hack::Sockets
+}  // namespace Rt2::Sockets::Net

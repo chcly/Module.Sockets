@@ -567,6 +567,16 @@ namespace Rt2::Sockets::Net
         return true;
     }
 
+    Host INetHost(const HostInfo& inf)
+    {
+        for (const auto & host : inf)
+        {
+            if (host.family == AddrINet)
+                return host;
+        }
+        return {};
+    }
+
     String toString(const HostInfo& info)
     {
         OutputStringStream oss;
