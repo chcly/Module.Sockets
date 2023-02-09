@@ -62,10 +62,10 @@ GTEST_TEST(Sockets, GetHeaders)
     using namespace Sockets::Net;
     ensureInitialized();
 
-    constexpr const char* address = "google.com";
+    constexpr const char* name = "google.com";
 
     HostInfo inf;
-    getHostInfo(inf, address);
+    getHostInfo(inf, name);
     EXPECT_FALSE(inf.empty());
 
     Host inet = INetHost(inf);
