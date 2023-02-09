@@ -324,12 +324,8 @@ namespace Rt2::Sockets::Net
         SocketInputAddress& dest = result.getInput();
         memset(&dest, 0, sizeof(SocketInputAddress));
 
-        int sz = sizeof(SocketInputAddress);
-#ifdef _WIN32
+        socklen_t sz = sizeof(SocketInputAddress);
         return ::accept(sock, (sockaddr*)&dest, &sz);
-#else
-        return ::accept(sock, (sockaddr*)&dest, (socklen_t*)&sz);
-#endif
     }
 
     Status readBuffer(const Socket& sock,
@@ -383,42 +379,41 @@ namespace Rt2::Sockets::Net
             return -1;
         }
 
-        FILE* fp = fopen(fileName, "rb");
-        if (!fp)
+        InputFileStream ifs(fileName, std::ios::ate | std::ios::binary);
+        if (!ifs.is_open())
         {
-            printf("Failed to open file: %s", fileName);
+            Console::writeError("failed to open file ", fileName);
             return -1;
         }
 
-        fseek(fp, 0L, SEEK_END);
-        int bufLen = (int)ftell(fp);
-        fseek(fp, 0L, SEEK_SET);
 
+
+        std::streamsize bufLen = ifs.tellg();
+        ifs.seekg(0, std::ios::beg);
         if (bufLen <= 0)
         {
-            printf("File is empty");
-            fclose(fp);
+            Console::writeError("the supplied file is empty", fileName);
             return -1;
         }
 
         if (bufLen > 0xFFFF)
         {
-            printf("File length is restricted to 0xFFFF\n");
-            fclose(fp);
+            Console::writeError("the size of the supplied file: ",
+                                fileName,
+                                ", is larger than the maximum "
+                                "allowed file size of 0xFFFF");
             return -1;
         }
 
         char* mem = (char*)malloc(bufLen + 2);
         if (mem == nullptr)
         {
-            printf("Invalid alloc\n");
-            fclose(fp);
+            Console::writeError("invalid alloc");
             return -1;
         }
 
-        fread(mem, 1, bufLen, fp);
+        ifs.read(mem, bufLen);
         mem[bufLen] = 0;
-        fclose(fp);
 
         bufLen = writeBuffer(sock, mem, bufLen);
         free(mem);
@@ -589,4 +584,4 @@ namespace Rt2::Sockets::Net
         return oss.str();
     }
 
-}  // namespace Rt2::Sockets::Plat
+}  // namespace Rt2::Sockets::Net

@@ -23,7 +23,6 @@
 #include <functional>
 #include "Sockets/PlatformSocket.h"
 #include "Threads/CriticalSection.h"
-#include "Threads/Mutex.h"
 #include "Utils/Definitions.h"
 
 namespace Rt2::Sockets
@@ -37,17 +36,17 @@ namespace Rt2::Sockets
     private:
         friend class ServerThread;
 
-
         mutable Threads::CriticalSection _sec{};
         Net::Socket                      _server{Net::InvalidSocket};
         I8                               _status{-1};
         ServerThread*                    _main{nullptr};
         MessageFunction                  _message{nullptr};
+        int                              _maxConnect{0};
 
         void dispatch(const String& msg) const;
 
     public:
-        ServerSocket(const String& ipv4, uint16_t port);
+        ServerSocket(const String& ipv4, uint16_t port, int maxConnections = -1);
         ~ServerSocket();
 
         void onMessageReceived(const MessageFunction& function);
@@ -57,7 +56,7 @@ namespace Rt2::Sockets
         bool isOpen() const;
 
     private:
-        void open(const String& ipv4, uint16_t port, int32_t backlog=1);
+        void open(const String& ipv4, uint16_t port, int32_t backlog = 1);
     };
 
 

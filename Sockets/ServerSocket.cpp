@@ -22,6 +22,7 @@
 #include "Sockets/ServerSocket.h"
 #include "SocketStream.h"
 #include "Sockets/Connection.h"
+#include "Threads/Mutex.h"
 #include "Threads/Task.h"
 #include "Threads/Thread.h"
 #include "Utils/Exception.h"
@@ -32,20 +33,23 @@ namespace Rt2::Sockets
     class ServerThread final : public Threads::Thread
     {
     private:
-        bool                             _status{true};
-        const ServerSocket*              _socket;
-        mutable Threads::CriticalSection _sec;
+        bool                   _status{true};
+        const ServerSocket*    _socket;
+        mutable Threads::Mutex _sec;
+        int                    _maxConnect{0};
+        int                    _connect{0};
 
     private:
         void readSocket(Net::Socket socket) const;
 
-        void acceptConnections() const;
+        void acceptConnections();
 
         int update() override;
 
     public:
-        explicit ServerThread(const ServerSocket* parent) :
-            _socket(parent)
+        explicit ServerThread(const ServerSocket* parent, int maxConnections) :
+            _socket(parent),
+            _maxConnect(maxConnections)
         {
         }
 
@@ -57,7 +61,7 @@ namespace Rt2::Sockets
 
         void kill()
         {
-            Threads::CriticalSectionLock sl(&_sec);
+            ScopeLockMtx(_sec);
             _status = false;
         }
     };
@@ -66,42 +70,54 @@ namespace Rt2::Sockets
     {
         SocketInputStream<72> in(socket);
 
-        String message;
-        in >> message;
-
+        OutputStringStream oss;
+        while (!in.eof())
         {
-            Threads::CriticalSectionLock sl(&_sec);
-            _socket->dispatch(message);
+            String message;
+            in >> message;
+            oss << message;
+            if (!in.eof())
+                oss << ' ';
         }
+
+        ScopeLockMtx(_sec);
+        _socket->dispatch(oss.str());
     }
 
-    void ServerThread::acceptConnections() const
+    void ServerThread::acceptConnections()
     {
         Net::Connection client;
-
         if (const Net::Socket sock = Net::accept(_socket->_server, client);
             sock != Net::InvalidSocket)
         {
-            try
-            {
-                const Threads::Task task(
-                    [this, sock]()
-                    {
-                        this->readSocket(sock);
-                        Net::close(sock);
-                    });
-                (void)task.invoke();
-            }
-            catch (...)
-            {
-            }
+            Threads::Task::start(
+                [=]
+                {
+                    readSocket(sock);
+                },
+                [=]
+                {
+                    Net::close(sock);
+                    _connect++;
+                });
         }
+        else
+            std::this_thread::yield();
     }
 
     int ServerThread::update()
     {
-        while (_status)
-            acceptConnections();
+        if (_maxConnect > 0)
+        {
+            while (_connect < _maxConnect)
+                acceptConnections();
+        }
+        else
+        {
+            while (_status)
+                acceptConnections();
+        }
+
         return 0;
     }
 
@@ -111,7 +127,8 @@ namespace Rt2::Sockets
             _message(msg);
     }
 
-    ServerSocket::ServerSocket(const String& ipv4, const uint16_t port)
+    ServerSocket::ServerSocket(const String& ipv4, const uint16_t port, const int maxConnections) :
+        _maxConnect(maxConnections)
     {
         Net::ensureInitialized();
         open(ipv4, port);
@@ -139,7 +156,7 @@ namespace Rt2::Sockets
     {
         if (!_main)
         {
-            _main = new ServerThread(this);
+            _main = new ServerThread(this, _maxConnect);
             _main->start();
         }
     }

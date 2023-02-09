@@ -18,27 +18,30 @@ void stall(int ms)
 
 GTEST_TEST(Sockets, Server_001)
 {
-    constexpr U16         port = 5555;
-    Sockets::ServerSocket ss("127.0.0.1", port);
+    constexpr U16 port = 5555;
+    constexpr int max  = 16;
+
+    Sockets::ServerSocket ss("127.0.0.1", port, max);
     EXPECT_TRUE(ss.isOpen());
     ss.start();
 
 
+    int nr = 0;
     ss.onMessageReceived(
-        [](const String& msg)
+        [&nr](const String& msg)
         {
-            Console::writeLine("msg=", msg);
-            EXPECT_EQ(msg, "Hello1");
+            ++nr;
+            const String& exp = Su::join("Hello from client #", nr);
+            Console::writeLine(exp);
+            EXPECT_EQ(msg, exp);
         });
 
-    const Sockets::ClientSocket c1("127.0.0.1", port);
-    EXPECT_TRUE(c1.isOpen());
-    c1.write("Hello1");
-    const Sockets::ClientSocket c2("127.0.0.1", port);
-    EXPECT_TRUE(c2.isOpen());
-    c2.write("Hello1");
-
-    stall(100000);
+    for (int i = 0; i < max; ++i)
+    {
+        const Sockets::ClientSocket client("127.0.0.1", port);
+        EXPECT_TRUE(client.isOpen());
+        client.write(Su::join("Hello from client #", i + 1));
+    }
 }
 
 
