@@ -120,6 +120,7 @@ def initModules():
     # this is meant to be called from the same directory
     # as the module script.
 
+    execProgram("git pull")
     execProgram("git submodule init")
     execProgram("git submodule update --init --merge")
 
