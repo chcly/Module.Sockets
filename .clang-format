@@ -12,20 +12,20 @@ IndentCaseLabels:   false
 AlwaysBreakTemplateDeclarations:     true
 AlignConsecutiveDeclarations:        true
 AlignConsecutiveAssignments:         true
-AllowShortIfStatementsOnASingleLine: false
-AllowShortFunctionsOnASingleLine:    false
+AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine:    true
+AlignArrayOfStructures:              Right
 
-MaxEmptyLinesToKeep:                 1
+MaxEmptyLinesToKeep:                1
 KeepEmptyLinesAtTheStartOfBlocks:   false
 
-
-IndentPPDirectives:   None
-IncludeBlocks:        Merge
-AccessModifierOffset: -4
-NamespaceIndentation: All
-PointerAlignment:     Left
+IndentPPDirectives:     BeforeHash
+IncludeBlocks:          Merge
+AccessModifierOffset:   -4
+NamespaceIndentation:   All
+PointerAlignment:       Left
 DerivePointerAlignment: false
-SpaceBeforeParens:    ControlStatements
+SpaceBeforeParens:      ControlStatements
 
 Standard: Auto
 AlignTrailingComments: true

@@ -127,6 +127,9 @@ def updateModules(currentDir, moduleDict):
 
     for key in moduleDict.keys():
         module = moduleDict[key]
+        print("-".ljust(39, '-'))
+        print(module.get("url", None))
+        print("-".ljust(39, '-'))
 
         path = module.get("path", None)
         branch = module.get("branch", None)
