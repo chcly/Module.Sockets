@@ -18,7 +18,10 @@
 #    misrepresented as being the original software.
 # 3. This notice may not be removed or altered from any source distribution.
 # ------------------------------------------------------------------------------
-import sys, os, subprocess, re
+import os, subprocess, re
+
+PULL = "git pull"
+
 
 def trim(line):
     line = line.replace('\t', '')
@@ -26,8 +29,10 @@ def trim(line):
     line = line.replace(' ', '')
     return line
 
-def makeAbsolute(currentDir, relitaveDir):
-    return os.path.join(currentDir, relitaveDir)
+
+def makeAbsolute(currentDir, relativeDir):
+    return os.path.join(currentDir, relativeDir).replace("\\", "/")
+
 
 def checkUrl(url):
     matchObj = re.match("[a-zA-Z0-9:/.]+", url)
@@ -35,19 +40,25 @@ def checkUrl(url):
         return url
     return None
 
+
 def checkBranch(branch):
     matchObj = re.match("[a-zA-Z0-9.]+", branch)
     if (matchObj != None):
         return branch
     return None
 
+
 def checkShallow(shallow):
     if (shallow == "true" or shallow == "false"):
         return shallow
     return None
 
+
 def execProgram(args):
-    subprocess.call(args.split(' '))
+    subprocess.run(args.split(' '),
+                   shell=False,
+                   env=os.environ,
+                   capture_output=True)
 
 
 def changeDirectory(directory):
@@ -57,18 +68,72 @@ def changeDirectory(directory):
         val = os.getcwd()
         directory = directory.replace('\\', '/')
         val = val.replace('\\', '/')
-        return directory == val;
-    except:
+        return directory == val
+    except OSError:
         pass
     return False
 
 
+def initModules():
+    # this is meant to be called from the same directory
+    # as the module script.
+
+    execProgram(PULL)
+    execProgram("git submodule init")
+    execProgram("git submodule update --init --merge")
+
+
+def updateModules(moduleDict):
+
+    for key in moduleDict.keys():
+        module = moduleDict[key]
+
+        path = module.get("path", None)
+        branch = module.get("branch", None)
+        shallow = module.get("shallow", None)
+        url = module.get("url", None)
+
+        print("Updating", url)
+        print("=>".rjust(11, ' '), module.get("name", None))
+
+        if (path != None):
+            if (not os.path.isdir(path)):
+                print(
+                    "could not determine the directory for the "
+                    "supplied path:", path)
+                continue
+
+            if (url == None):
+                continue
+
+            if (not changeDirectory(path)):
+                print(
+                    "could not switch directory "
+                    "to the module at the supplied path:", path)
+                continue
+
+            branchStr = "master"
+            if (branch != None):
+                branchStr = branch
+
+            shallowValue = False
+            if (shallow != None):
+                shallowValue = (shallow == 'true')
+
+            if (shallowValue == False):
+                execProgram("git checkout %s" % branchStr)
+                execProgram(PULL)
+            else:
+                execProgram("git checkout -f -B %s" % branchStr)
+                execProgram(PULL + " %s %s" % (url, branchStr))
+
+
 def collectModules(currentDir, gitModulesFile):
+
     moduleDict = {}
-    
-    file = open(makeAbsolute(currentDir, gitModulesFile), mode = 'r')
-    lines = file.readlines()
-    file.close()
+    fp = open(makeAbsolute(currentDir, gitModulesFile), mode='r')
+    lines = fp.readlines()
+    fp.close()
 
     # this assumes that variables come after the path
     moduleName = None
@@ -80,19 +145,21 @@ def collectModules(currentDir, gitModulesFile):
             moduleName = line[len(subModuleCode):-2]
             moduleDict[moduleName] = {}
             variableDict = moduleDict[moduleName]
-            variableDict['hasUrl'] = False;
+            variableDict['hasUrl'] = False
 
-        elif (moduleName != None): 
-            # exclude everything before 
+        elif (moduleName != None):
+            # exclude everything before
             variableDict = moduleDict[moduleName]
-           
+
             if (line.find("url=") != -1):
                 variableDict["url"] = checkUrl(line.replace("url=", ''))
-                variableDict['hasUrl'] = True;
+                variableDict['hasUrl'] = True
             elif (line.find("branch=") != -1):
-                variableDict["branch"] = checkBranch(line.replace("branch=", ''))
+                variableDict["branch"] = checkBranch(
+                    line.replace("branch=", ''))
             elif (line.find("shallow=") != -1):
-                variableDict["shallow"] = checkShallow(line.replace("shallow=", ''))
+                variableDict["shallow"] = checkShallow(
+                    line.replace("shallow=", ''))
             elif (line.find("path=") != -1):
                 moduleDirectory = line.replace("path=", '')
                 absPath = None
@@ -103,10 +170,10 @@ def collectModules(currentDir, gitModulesFile):
 
                 if (os.path.isdir(absPath)):
                     variableDict["path"] = absPath
+                    variableDict["name"] = moduleDirectory
             else:
                 if (len(line) > 0):
                     print("unhandled line: ", line)
-
 
     for key in moduleDict.keys():
         module = moduleDict[key]
@@ -116,75 +183,18 @@ def collectModules(currentDir, gitModulesFile):
     return moduleDict
 
 
-def initModules():
-    # this is meant to be called from the same directory
-    # as the module script.
-
-    execProgram("git pull")
-    execProgram("git submodule init")
-    execProgram("git submodule update --init --merge")
-
-def updateModules(currentDir, moduleDict):
-
-    for key in moduleDict.keys():
-        module = moduleDict[key]
-        print("-".ljust(39, '-'))
-        print(module.get("url", None))
-        print("-".ljust(39, '-'))
-
-        path = module.get("path", None)
-        branch = module.get("branch", None)
-        shallow = module.get("shallow", None)
-        url = module.get("url", None)
-
-        if (path != None):
-            if (not os.path.isdir(path)): 
-                print("could not determine the directory for the "
-                      "supplied path:",path);
-                continue
-
-            if (url == None): 
-                continue
-
-            if (not changeDirectory(path)):
-                print("could not switch directory "
-                      "to the module at the supplied path:",path);
-                continue
-
-            branchStr = "master"
-            if (branch != None): 
-                branchStr = branch
-
-            shallowValue = False
-            if (shallow != None):
-                shallowValue= (shallow == 'true')
-
-            if (shallowValue == False):
-                print("git checkout", branchStr)
-                execProgram("git checkout %s"%branchStr)
-                print("git pull")
-                execProgram("git pull")
-            else:
-                print("git clone", "-f -B ", branchStr)
-                execProgram("git checkout -f -B %s"%branchStr)
-                print("git pull", url, branchStr)
-                execProgram("git pull %s %s"%(url, branchStr))
-
 def main():
     currentDir = os.getcwd()
     gitModulesFile = os.path.abspath(".gitmodules")
-
     if (not os.path.isfile(gitModulesFile)):
         print("No .gitmodule found in", currentDir, "\nNothing to update...")
         return
-
     moduleDict = collectModules(currentDir, gitModulesFile)
 
     initModules()
-    updateModules(currentDir, moduleDict)
+    updateModules(moduleDict)
     changeDirectory(currentDir)
 
 
-
-if __name__== '__main__':
+if __name__ == '__main__':
     main()
