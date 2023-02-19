@@ -4,3 +4,9 @@
 [submodule "CMake/Modules"]
 	path = CMake/Modules
 	url = https://github.com/CharlesCarley/CMakeModules.git
+[submodule "Internal/Utils"]
+	path = Internal/Utils
+	url = https://github.com/CharlesCarley/Module.Utils.git
+[submodule "Internal/Threads"]
+	path = Internal/Threads
+	url = https://github.com/CharlesCarley/Module.Threads.git
