@@ -5,10 +5,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
      - uses: actions/checkout@v3
- 
-     - uses: webfactory/ssh-agent@v0.7.0
-       with:
-         ssh-private-key: ${{ secrets.THREADS_PRIVATE }} | ${{ secrets.UTILS_PRIVATE }}
 
      - name: Configure
        run: cmake -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON .
