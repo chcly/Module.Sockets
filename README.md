@@ -1,6 +1,6 @@
 # Sockets
 
-Is a basic C++ wrapper that allows socket communication. 
+Is a basic C++ wrapper that allows cross-platform socket communication. 
 
 
 ## Testing
