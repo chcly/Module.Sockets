@@ -19,7 +19,7 @@ list(APPEND CMAKE_MODULE_PATH
   ${Sockets_SOURCE_DIR}/CMake 
   ${Sockets_SOURCE_DIR}/CMake/Modules
 )
-include(${Sockets_SOURCE_DIR}/CMake/Configure.cmake)
+include(Configure)
 if (NOT Configure_SUCCEEDED)
    return()
 endif()
