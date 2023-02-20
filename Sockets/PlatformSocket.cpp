@@ -321,7 +321,7 @@ namespace Rt2::Sockets::Net
 
     Socket accept(const Socket& sock, Connection& result)
     {
-        SocketInputAddress& dest = result.getInput();
+        SocketInputAddress& dest = result.input();
         memset(&dest, 0, sizeof(SocketInputAddress));
 
         socklen_t sz = sizeof(SocketInputAddress);

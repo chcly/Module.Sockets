@@ -30,17 +30,17 @@ namespace Rt2::Sockets::Net
         SocketInputAddress _inp{};
 
     public:
-        SocketInputAddress& getInput()
+        SocketInputAddress& input()
         {
             return _inp;
         }
 
-        String getAddress() const
+        String address() const
         {
             return NetworkToAsciiIpV4(_inp.sin_addr.s_addr);
         }
 
-        uint16_t getPort() const
+        uint16_t port() const
         {
             return NetworkToHostShort(_inp.sin_port);
         }

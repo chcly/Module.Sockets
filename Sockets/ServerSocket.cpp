@@ -20,6 +20,7 @@
 -------------------------------------------------------------------------------
 */
 #include "Sockets/ServerSocket.h"
+#include <thread>
 #include "SocketStream.h"
 #include "Sockets/Connection.h"
 #include "Threads/Mutex.h"
@@ -160,8 +161,6 @@ namespace Rt2::Sockets
             _main->start();
         }
     }
-
-
 
     void ServerSocket::open(const String& ipv4, uint16_t port, int32_t backlog)
     {

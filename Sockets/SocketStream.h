@@ -199,4 +199,8 @@ namespace Rt2::Sockets
         }
     };
 
+
+
+    using DefaultInputStream = SocketInputStream<0x7FFF>;
+
 }  // namespace Rt2::Sockets
