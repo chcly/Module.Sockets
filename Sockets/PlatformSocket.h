@@ -44,7 +44,7 @@
  */
 namespace Rt2::Sockets::Net
 {
-    constexpr short MaxBufferSize = 0x7FFF;
+    constexpr int MaxBufferSize = 0x7FFFFF;
 
     class Connection;
 
@@ -125,7 +125,8 @@ namespace Rt2::Sockets::Net
     extern Socket create(
         AddressFamily  addressFamily,
         SocketType     type,
-        ProtocolFamily protocolFamily = ProtoUnspecified);
+        ProtocolFamily protocolFamily = ProtoUnspecified,
+        bool block=false);
 
     extern void close(const Socket& sock);
 

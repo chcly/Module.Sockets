@@ -22,48 +22,44 @@
 #pragma once
 #include <functional>
 #include "Sockets/PlatformSocket.h"
-#include "Threads/CriticalSection.h"
 #include "Utils/Definitions.h"
 
 namespace Rt2::Sockets
 {
     class ServerThread;
-
-    using MessageFunction = std::function<void(const String& message)>;
+    using ConnectionAccepted = std::function<void(const Net::Socket&)>;
 
     class ServerSocket
     {
     private:
         friend class ServerThread;
-
-        mutable Threads::CriticalSection _sec{};
-        Net::Socket                      _server{Net::InvalidSocket};
-        I8                               _status{-1};
-        ServerThread*                    _main{nullptr};
-        MessageFunction                  _message{nullptr};
-        int                              _maxConnect{0};
-
-        void dispatch(const String& msg) const;
+        Net::Socket        _server{Net::InvalidSocket};
+        I8                 _status{-1};
+        ServerThread*      _main{nullptr};
+        ConnectionAccepted _accepted;
 
     public:
-        ServerSocket(const String& ipv4, uint16_t port, int maxConnections = -1);
-        ~ServerSocket();
+        ServerSocket(const String& ipv4, uint16_t port);
 
-        void onMessageReceived(const MessageFunction& function);
+        ~ServerSocket();
 
         void start();
 
-        bool isOpen() const;
+        void stop();
+
+        bool isValid() const;
+
+        void connect(const ConnectionAccepted& onAccept);
 
     private:
+        void connected(const Net::Socket& socket) const;
+
         void open(const String& ipv4, uint16_t port, int32_t backlog = 1);
     };
 
-
-    inline bool ServerSocket::isOpen() const
+    inline bool ServerSocket::isValid() const
     {
         return _status == 0;
     }
-
 
 }  // namespace Rt2::Sockets

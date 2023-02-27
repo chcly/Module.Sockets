@@ -3,37 +3,11 @@
 #include "Sockets/PlatformSocket.h"
 #include "Sockets/ServerSocket.h"
 #include "Sockets/SocketStream.h"
+#include "Threads/Task.h"
 #include "Utils/Console.h"
 #include "gtest/gtest.h"
 
 using namespace Rt2;
-
-GTEST_TEST(Sockets, Server_001)
-{
-    constexpr U16 port = 5555;
-    constexpr int max  = 5;
-
-    Sockets::ServerSocket ss("127.0.0.1", port, max);
-    EXPECT_TRUE(ss.isOpen());
-    ss.start();
-
-    int nr = 0;
-    ss.onMessageReceived(
-        [&nr](const String& msg)
-        {
-            ++nr;
-            const String& exp = Su::join("Hello from client #", nr);
-            Console::writeLine(exp);
-            EXPECT_EQ(msg, exp);
-        });
-
-    for (int i = 0; i < max; ++i)
-    {
-        const Sockets::ClientSocket client("127.0.0.1", port);
-        EXPECT_TRUE(client.isOpen());
-        client.write(Su::join("Hello from client #", i + 1));
-    }
-}
 
 GTEST_TEST(Sockets, GetHostInfo)
 {
@@ -73,7 +47,7 @@ GTEST_TEST(Sockets, GetHeaders)
 
     Console::writeLine(toString(inf));
 
-    const Socket sock = create(AddrINet, Stream);
+    const Socket sock = create(AddrINet, Stream, ProtoUnspecified, true);
     EXPECT_NE(sock, InvalidSocket);
 
     const int res = connect(sock, inet.address, 80);

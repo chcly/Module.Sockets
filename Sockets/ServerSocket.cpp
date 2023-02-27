@@ -23,113 +23,56 @@
 #include <thread>
 #include "SocketStream.h"
 #include "Sockets/Connection.h"
-#include "Threads/Mutex.h"
+#include "Threads/CriticalSection.h"
 #include "Threads/Task.h"
 #include "Threads/Thread.h"
 #include "Utils/Exception.h"
 
 namespace Rt2::Sockets
 {
-
     class ServerThread final : public Threads::Thread
     {
     private:
-        bool                   _status{true};
-        const ServerSocket*    _socket;
-        mutable Threads::Mutex _sec;
-        int                    _maxConnect{0};
-        int                    _connect{0};
+        Threads::CriticalSection _cs;
+        bool                     _status{true};
+        const ServerSocket*      _socket{nullptr};
 
     private:
-        void readSocket(Net::Socket socket) const;
-
-        void acceptConnections();
-
-        int update() override;
+        int update() override
+        {
+            while (_status)
+            {
+                Net::Connection client;
+                if (const Net::Socket sock = Net::accept(_socket->_server, client);
+                    sock != Net::InvalidSocket)
+                {
+                    _socket->connected(sock);
+                    Net::close(sock);
+                }
+                else 
+                {
+                    // non-blocking, so exit signal handlers can
+                    // process an exit gracefully.
+                    yield();
+                }
+            }
+            return 0;
+        }
 
     public:
-        explicit ServerThread(const ServerSocket* parent, int maxConnections) :
-            _socket(parent),
-            _maxConnect(maxConnections)
+        explicit ServerThread(const ServerSocket* parent) :
+            _socket(parent)
         {
         }
 
-        ~ServerThread() override
+        void stop()
         {
-            kill();
-            join();
-        }
-
-        void kill()
-        {
-            ScopeLockMtx(_sec);
+            ScopeLockCs(_cs);
             _status = false;
         }
     };
 
-    void ServerThread::readSocket(const Net::Socket socket) const
-    {
-        SocketInputStream<72> in(socket);
-
-        OutputStringStream oss;
-        while (!in.eof())
-        {
-            String message;
-            in >> message;
-            oss << message;
-            if (!in.eof())
-                oss << ' ';
-        }
-
-        ScopeLockMtx(_sec);
-        _socket->dispatch(oss.str());
-    }
-
-    void ServerThread::acceptConnections()
-    {
-        Net::Connection client;
-        if (const Net::Socket sock = Net::accept(_socket->_server, client);
-            sock != Net::InvalidSocket)
-        {
-            Threads::Task::start(
-                [=]
-                {
-                    readSocket(sock);
-                },
-                [=]
-                {
-                    Net::close(sock);
-                    _connect++;
-                });
-        }
-        else
-            std::this_thread::yield();
-    }
-
-    int ServerThread::update()
-    {
-        if (_maxConnect > 0)
-        {
-            while (_connect < _maxConnect)
-                acceptConnections();
-        }
-        else
-        {
-            while (_status)
-                acceptConnections();
-        }
-
-        return 0;
-    }
-
-    void ServerSocket::dispatch(const String& msg) const
-    {
-        if (_message)
-            _message(msg);
-    }
-
-    ServerSocket::ServerSocket(const String& ipv4, const uint16_t port, const int maxConnections) :
-        _maxConnect(maxConnections)
+    ServerSocket::ServerSocket(const String& ipv4, const uint16_t port)
     {
         Net::ensureInitialized();
         open(ipv4, port);
@@ -137,8 +80,7 @@ namespace Rt2::Sockets
 
     ServerSocket::~ServerSocket()
     {
-        delete _main;
-        _main = nullptr;
+        stop();
 
         if (_server)
         {
@@ -147,28 +89,46 @@ namespace Rt2::Sockets
         }
     }
 
-    void ServerSocket::onMessageReceived(const MessageFunction& function)
-    {
-        Threads::CriticalSectionLock sl(&_sec);
-        _message = function;
-    }
-
     void ServerSocket::start()
     {
         if (!_main)
         {
-            _main = new ServerThread(this, _maxConnect);
+            _main = new ServerThread(this);
             _main->start();
         }
     }
 
-    void ServerSocket::open(const String& ipv4, uint16_t port, int32_t backlog)
+    void ServerSocket::stop()
+    {
+        if (_main)
+        {
+            _main->stop();
+            delete _main;
+            _main = nullptr;
+        }
+        _status = -5;
+    }
+
+    void ServerSocket::connect(const ConnectionAccepted& onAccept)
+    {
+        _accepted = onAccept;
+    }
+
+    void ServerSocket::connected(const Net::Socket& socket) const
+    {
+        if (_accepted)
+            _accepted(socket);
+    }
+
+    void ServerSocket::open(const String& ipv4, uint16_t port, const int32_t backlog)
     {
         using namespace Net;
-
         try
         {
-            _server = create(AddrINet, Stream, ProtoUnspecified);
+            _server = create(AddrINet,
+                             Stream,
+                             ProtoIpTcp,
+                             false);
             if (_server == InvalidSocket)
                 throw Exception("failed to create socket");
 

@@ -28,11 +28,14 @@
 #include "Utils/Exception.h"
 
 #ifndef _WIN32
-#include <poll.h>
-#include <sys/select.h>
-#include <unistd.h>
-#include <cstring>
+    #include <fcntl.h>
+    #include <poll.h>
+    #include <sys/select.h>
+    #include <unistd.h>
+    #include <cstring>
 #endif
+
+#define VERBOSE_DEBUG 1
 
 namespace Rt2::Sockets::Net
 {
@@ -56,7 +59,6 @@ namespace Rt2::Sockets::Net
             }
             ~Setup()
             {
-                Console::writeLine("finished");
                 finalize();
             }
         };
@@ -64,13 +66,10 @@ namespace Rt2::Sockets::Net
         static Setup inst;
     }
 
-
-
     void initialize()
     {
 #ifdef _WIN32
         WSADATA data = {};
-
         // The current version of the Windows Sockets specification is version 2.2.
         constexpr WORD versionRequested = MAKEWORD(2, 2);
 
@@ -78,7 +77,7 @@ namespace Rt2::Sockets::Net
         if (const int status = WSAStartup(versionRequested, &data);
             status == 0)
         {
-#ifdef VERBOSE_DEBUG
+    #ifdef VERBOSE_DEBUG
             printf("WSADATA   \n");
             printf(" Version     : %d.%d\n", LOBYTE(data.wVersion), HIBYTE(data.wVersion));
             printf(" MaxSockets  : %d\n", data.iMaxSockets);
@@ -86,7 +85,7 @@ namespace Rt2::Sockets::Net
             printf(" Vendor      : %s\n", data.lpVendorInfo);
             printf(" Description : %s\n", data.szDescription);
             printf(" Status      : %s\n", data.szSystemStatus);
-#endif
+    #endif
         }
         else
             throw Exception("Initialize Windows sockets failed with error code: ", WSAGetLastError());
@@ -103,17 +102,42 @@ namespace Rt2::Sockets::Net
 #endif
     }
 
+    static void nonBlockingSocket(Socket sock)
+    {
+        if (sock != InvalidSocket)
+        {
+#ifdef _WIN32
+            u_long nonBlock = 1;
+            if (ioctlsocket(sock, FIONBIO, &nonBlock) != 0)
+            {
+    #ifdef VERBOSE_DEBUG
+                Console::writeLine("Failed to set non blocking i/o");
+    #endif
+            }
+#else
+            fcntl(sock, F_SETFL, O_NONBLOCK);
+#endif
+        }
+    }
+
     Socket create(const AddressFamily  addressFamily,
                   const SocketType     type,
-                  const ProtocolFamily protocolFamily)
+                  const ProtocolFamily protocolFamily,
+                  const bool           block)
     {
-        return socket((int)addressFamily, (int)type, (int)protocolFamily);
+        const Socket sock = socket((int)addressFamily, (int)type, (int)protocolFamily);
+        if (!block)
+            nonBlockingSocket(sock);
+        return sock;
     }
 
     void close(const Socket& sock)
     {
 #ifdef _WIN32
-        closesocket(sock);
+        if (closesocket(sock) != 0)
+        {
+            // TODO: debug utility reporter for WSAGetLastError
+        }
 #else
         ::close(sock);
 #endif
@@ -171,7 +195,6 @@ namespace Rt2::Sockets::Net
             return "Other";
         }
     }
-
 
     Status setOption(Socket&             sock,
                      const ProtocolLevel protocolLevel,
@@ -309,23 +332,14 @@ namespace Rt2::Sockets::Net
 
     Socket accept(const Socket& sock, SocketInputAddress& dest)
     {
-        dest = {};
-
-        int sz = sizeof(SocketInputAddress);
-#ifdef _WIN32
+        dest         = {};
+        socklen_t sz = sizeof(SocketInputAddress);
         return ::accept(sock, (sockaddr*)&dest, &sz);
-#else
-        return ::accept(sock, (sockaddr*)&dest, (socklen_t*)&sz);
-#endif
     }
 
     Socket accept(const Socket& sock, Connection& result)
     {
-        SocketInputAddress& dest = result.input();
-        memset(&dest, 0, sizeof(SocketInputAddress));
-
-        socklen_t sz = sizeof(SocketInputAddress);
-        return ::accept(sock, (sockaddr*)&dest, &sz);
+        return accept(sock, result.input());
     }
 
     Status readBuffer(const Socket& sock,
@@ -385,8 +399,6 @@ namespace Rt2::Sockets::Net
             Console::writeError("failed to open file ", fileName);
             return -1;
         }
-
-
 
         std::streamsize bufLen = ifs.tellg();
         ifs.seekg(0, std::ios::beg);
@@ -569,7 +581,7 @@ namespace Rt2::Sockets::Net
 
     Host INetHost(const HostInfo& inf)
     {
-        for (const auto & host : inf)
+        for (const auto& host : inf)
         {
             if (host.family == AddrINet)
                 return host;

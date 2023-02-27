@@ -23,10 +23,12 @@
 #include "Sockets/Connection.h"
 #include "Threads/Thread.h"
 #include "Utils/Exception.h"
+#include "Utils/FixedString.h"
 
 namespace Rt2::Sockets
 {
-    ClientSocket::ClientSocket(const String& ipv4, const uint16_t port)
+    ClientSocket::ClientSocket(const String&  ipv4,
+                               const uint16_t port)
     {
         Net::ensureInitialized();
         open(ipv4, port);
@@ -43,11 +45,19 @@ namespace Rt2::Sockets
             Net::writeBuffer(_client, msg.c_str(), msg.size());
     }
 
+    void ClientSocket::write(IStream& msg) const
+    {
+        OutputStringStream oss;
+        while (!msg.eof())
+            oss.put((char)msg.get());
+        write(oss.str());
+    }
+
     void ClientSocket::open(const String& ipv4, uint16_t port)
     {
         try
         {
-            _client = Net::create(Net::AddrINet, Net::Stream);
+            _client = create(Net::AddrINet, Net::Stream, Net::ProtoUnspecified, true);
             if (_client == Net::InvalidSocket)
                 throw Exception("failed to create socket");
 

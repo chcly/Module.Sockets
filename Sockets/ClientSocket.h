@@ -36,6 +36,8 @@ namespace Rt2::Sockets
 
         void write(const String& msg) const;
 
+        void write(IStream& msg) const;
+
         bool isOpen() const;
 
     private:
