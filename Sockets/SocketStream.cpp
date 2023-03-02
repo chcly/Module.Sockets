@@ -41,9 +41,7 @@ namespace Rt2::Sockets
         try
         {
             int br = 0;
-
             _status   = Net::readBuffer(_sock, (char*)destination, (int)length, br);
-
             bytesRead = (size_t)br;
         }
         catch (Exception& ex)

@@ -86,7 +86,7 @@ namespace Rt2::Sockets
         return _status != Net::Ok;
     }
 
-    template<size_t ScratchSize=0x7FFF>
+    template <size_t ScratchSize = 0x7FFF>
     class SocketInputStream final : public std::istream
     {
     public:
@@ -112,8 +112,6 @@ namespace Rt2::Sockets
                                           br);
 
                 const int_type bytesRead = br;
-
-
 
                 _scratch[bytesRead] = 0;
 
@@ -198,8 +196,6 @@ namespace Rt2::Sockets
         {
         }
     };
-
-
 
     using DefaultInputStream = SocketInputStream<0x7FFF>;
 
