@@ -49,7 +49,7 @@ namespace Rt2::Sockets
                     _socket->connected(sock);
                     Net::close(sock);
                 }
-                else 
+                else
                 {
                     // non-blocking, so exit signal handlers can
                     // process an exit gracefully.
@@ -72,10 +72,12 @@ namespace Rt2::Sockets
         }
     };
 
-    ServerSocket::ServerSocket(const String& ipv4, const uint16_t port)
+    ServerSocket::ServerSocket(const String&  ipv4,
+                               const uint16_t port,
+                               const uint16_t backlog)
     {
         Net::ensureInitialized();
-        open(ipv4, port);
+        open(ipv4, port, backlog);
     }
 
     ServerSocket::~ServerSocket()
@@ -120,7 +122,7 @@ namespace Rt2::Sockets
             _accepted(socket);
     }
 
-    void ServerSocket::open(const String& ipv4, uint16_t port, const int32_t backlog)
+    void ServerSocket::open(const String& ipv4, uint16_t port, const uint16_t backlog)
     {
         using namespace Net;
         try

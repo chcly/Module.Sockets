@@ -39,7 +39,7 @@ namespace Rt2::Sockets
         ConnectionAccepted _accepted;
 
     public:
-        ServerSocket(const String& ipv4, uint16_t port);
+        ServerSocket(const String& ipv4, uint16_t port, uint16_t backlog=0x100);
 
         ~ServerSocket();
 
@@ -54,7 +54,7 @@ namespace Rt2::Sockets
     private:
         void connected(const Net::Socket& socket) const;
 
-        void open(const String& ipv4, uint16_t port, int32_t backlog = 1);
+        void open(const String& ipv4, uint16_t port, uint16_t backlog);
     };
 
     inline bool ServerSocket::isValid() const

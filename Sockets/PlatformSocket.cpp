@@ -35,7 +35,7 @@
     #include <cstring>
 #endif
 
-#define VERBOSE_DEBUG 1
+//#define VERBOSE_DEBUG
 
 namespace Rt2::Sockets::Net
 {
