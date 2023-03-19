@@ -9,5 +9,5 @@ include_directories(${Utils_INCLUDE} ${Sockets_INCLUDE}  ${Threads_INCLUDE})
 
 add_library(${TargetName} ${Target_SRC})
 
-target_link_libraries(${TargetName} ${Utils_LIBRARY} ${Threads_LIBRARY})
+target_link_libraries(${TargetName} ${Utils_LIBRARY} ${Threads_LIBRARY} ${Sockets_PLATFORM})
 set_target_properties(${TargetName} PROPERTIES FOLDER "${TargetGroup}")

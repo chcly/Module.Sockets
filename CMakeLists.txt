@@ -25,6 +25,9 @@ if (NOT Configure_SUCCEEDED)
 endif()
 
 
+if (WIN32)
+   set(Sockets_PLATFORM "WS2_32")
+endif()
 
 if (Sockets_ExternalTarget)
     set(TargetFolders ${Sockets_TargetFolders})
