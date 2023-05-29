@@ -1,9 +1,9 @@
 [submodule "Test/googletest"]
 	path = Test/googletest
-	url = https://github.com/CharlesCarley/googletest.git
+	url = https://github.com/chcly/googletest.git
 [submodule "CMake/Modules"]
 	path = CMake/Modules
-	url = https://github.com/CharlesCarley/CMakeModules.git
+	url = https://github.com/chcly/CMakeModules.git
 [submodule "Internal/Utils"]
 	path = Internal/Utils
 	url = https://github.com/chcly/Module.Utils.git
