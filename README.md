@@ -18,8 +18,8 @@ cmake --build Build
 
 ### Optional defines
 
-| Option                    | Description                                          | Default |
-| :------------------------ | :--------------------------------------------------- | :-----: |
-| Thread_BUILD_TEST         | Build the unit test program.                         |   ON    |
-| Thread_AUTO_RUN_TEST      | Automatically run the test program.                  |   OFF   |
-| Thread_USE_STATIC_RUNTIME | Build with the MultiThreaded(Debug) runtime library. |   ON    |
+| Option                     | Description                                          | Default |
+| :------------------------- | :--------------------------------------------------- | :-----: |
+| Sockets_BUILD_TEST         | Build the unit test program.                         |   ON    |
+| Sockets_AUTO_RUN_TEST      | Automatically run the test program.                  |   OFF   |
+| Sockets_USE_STATIC_RUNTIME | Build with the MultiThreaded(Debug) runtime library. |   ON    |
