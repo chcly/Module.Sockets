@@ -33,6 +33,11 @@ namespace Rt2::Sockets
         open(ipv4, port);
     }
 
+    ClientSocket::ClientSocket()
+    {
+        Net::ensureInitialized();
+    }
+
     ClientSocket::~ClientSocket()
     {
         close();

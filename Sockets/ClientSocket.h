@@ -32,6 +32,7 @@ namespace Rt2::Sockets
 
     public:
         ClientSocket(const String& ipv4, uint16_t port);
+        ClientSocket();
         ~ClientSocket();
 
         void write(const String& msg) const;
@@ -40,15 +41,22 @@ namespace Rt2::Sockets
 
         bool isOpen() const;
 
-    private:
         void open(const String& ipv4, uint16_t port);
 
+        const Net::Socket& socket() const;
+
+    private:
         void close();
     };
 
     inline bool ClientSocket::isOpen() const
     {
         return _client != Net::InvalidSocket;
+    }
+
+    inline const Net::Socket& ClientSocket::socket() const
+    {
+        return _client;
     }
 
 }  // namespace Rt2::Sockets
