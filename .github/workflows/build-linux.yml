@@ -1,14 +1,11 @@
-name: Build With CMake
+name: Linux
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
      - uses: actions/checkout@v3
-
      - name: Configure
-       run: cmake -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON .
-
+       run: cmake -S . -B Build -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON
      - name: Build
-       run: make
-       
+       run: cmake --build Build

@@ -1,31 +1,25 @@
-# Sockets
+# Thread
 
-Is a basic C++ wrapper that allows cross-platform socket communication. 
-
+Utility socket library.
 
 ## Testing
 
-The testing directory is setup to work with [googletest](https://github.com/google/googletest).
-It contains the initial setup for testing this library as a standalone module using GitHub actions.
+The Test directory is setup to work with [googletest](https://github.com/google/googletest).
 
 ## Building
 
-It builds with cmake, and it has been tested on Windows and Unix platforms using
-the Visual Studio an Unix MakeFile cmake generators.
-
-### Building with CMake and Make
+![A1](https://github.com/chcly/Module.Sockets/actions/workflows/build-linux.yml/badge.svg)
+![A2](https://github.com/chcly/Module.Sockets/actions/workflows/build-windows.yml/badge.svg)
 
 ```sh
-mkdir build
-cd build
-cmake .. -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON
-make
+cmake -S . -B Build -DSockets_BUILD_TEST=ON -DSockets_AUTO_RUN_TEST=ON
+cmake --build Build
 ```
 
 ### Optional defines
 
-| Option                     | Description                                          | Default |
-| :------------------------- | :--------------------------------------------------- | :-----: |
-| Sockets_BUILD_TEST         | Build the unit test program.                         |   ON    |
-| Sockets_AUTO_RUN_TEST      | Automatically run the test program.                  |   OFF   |
-| Sockets_USE_STATIC_RUNTIME | Build with the MultiThreaded(Debug) runtime library. |   ON    |
+| Option                    | Description                                          | Default |
+| :------------------------ | :--------------------------------------------------- | :-----: |
+| Thread_BUILD_TEST         | Build the unit test program.                         |   ON    |
+| Thread_AUTO_RUN_TEST      | Automatically run the test program.                  |   OFF   |
+| Thread_USE_STATIC_RUNTIME | Build with the MultiThreaded(Debug) runtime library. |   ON    |
