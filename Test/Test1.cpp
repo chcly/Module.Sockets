@@ -71,3 +71,27 @@ GTEST_TEST(Sockets, GetHeaders)
         }
     }
 }
+
+GTEST_TEST(Sockets, LocalLink)
+{
+    bool connected = false;
+
+    Sockets::ServerSocket ss("127.0.0.1", 8080);
+    ss.connect(
+        [&connected](const Sockets::Net::Socket& sock)
+        {
+            connected = true;
+            Sockets::SocketInputStream si(sock);
+
+            String msg;
+            si >> msg;
+            Console::println(msg);
+            Sockets::ServerSocket::signal();
+        });
+    ss.start();
+
+    Sockets::ClientSocket cs("127.0.0.1", 8080);
+    cs.write("Hello ");
+    ss.waitSignaled();
+    EXPECT_TRUE(connected);
+}

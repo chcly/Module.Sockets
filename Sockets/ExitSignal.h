@@ -20,50 +20,28 @@
 -------------------------------------------------------------------------------
 */
 #pragma once
-#include <functional>
-#include "Sockets/PlatformSocket.h"
-#include "Utils/Definitions.h"
 
 namespace Rt2::Sockets
 {
-    class ServerThread;
-    using ConnectionAccepted = std::function<void(const Net::Socket&)>;
-
-    class ServerSocket
+    class ExitSignal
     {
     private:
-        friend class ServerThread;
-        Net::Socket        _server{Net::InvalidSocket};
-        I8                 _status{-1};
-        ServerThread*      _main{nullptr};
-        ConnectionAccepted _accepted;
+        static ExitSignal* _signal;
+        bool               _signaled{false};
+
+        static void signalMethod(int);
 
     public:
-        ServerSocket(const String& ipv4, uint16_t port, uint16_t backlog = 0x100);
+        explicit ExitSignal();
 
-        ~ServerSocket();
+        ~ExitSignal();
 
-        void start();
-
-        void waitSignaled();
-
-        void stop();
-
-        bool isValid() const;
-
-        void connect(const ConnectionAccepted& onAccept);
-
-        static void signal();
-
-    private:
-        void connected(const Net::Socket& socket) const;
-
-        void open(const String& ipv4, uint16_t port, uint16_t backlog);
+        bool signaled() const;
     };
 
-    inline bool ServerSocket::isValid() const
+    inline bool ExitSignal::signaled() const
     {
-        return _status == 0;
+        return _signaled;
     }
 
 }  // namespace Rt2::Sockets

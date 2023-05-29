@@ -19,51 +19,29 @@
   3. This notice may not be removed or altered from any source distribution.
 -------------------------------------------------------------------------------
 */
-#pragma once
-#include <functional>
-#include "Sockets/PlatformSocket.h"
-#include "Utils/Definitions.h"
+#include "Sockets/ExitSignal.h"
+#include <csignal>
 
 namespace Rt2::Sockets
 {
-    class ServerThread;
-    using ConnectionAccepted = std::function<void(const Net::Socket&)>;
+    ExitSignal* ExitSignal::_signal = nullptr;
 
-    class ServerSocket
+    void ExitSignal::signalMethod(int)
     {
-    private:
-        friend class ServerThread;
-        Net::Socket        _server{Net::InvalidSocket};
-        I8                 _status{-1};
-        ServerThread*      _main{nullptr};
-        ConnectionAccepted _accepted;
+        if (_signal)
+            _signal->_signaled = true;
+    }
 
-    public:
-        ServerSocket(const String& ipv4, uint16_t port, uint16_t backlog = 0x100);
-
-        ~ServerSocket();
-
-        void start();
-
-        void waitSignaled();
-
-        void stop();
-
-        bool isValid() const;
-
-        void connect(const ConnectionAccepted& onAccept);
-
-        static void signal();
-
-    private:
-        void connected(const Net::Socket& socket) const;
-
-        void open(const String& ipv4, uint16_t port, uint16_t backlog);
-    };
-
-    inline bool ServerSocket::isValid() const
+    ExitSignal::ExitSignal()
     {
-        return _status == 0;
+        _signal = this;
+        (void)signal(SIGINT, signalMethod);
+        (void)signal(SIGTERM, signalMethod);
+    }
+
+    ExitSignal::~ExitSignal()
+    {
+        _signal = nullptr;
     }
 
 }  // namespace Rt2::Sockets

@@ -20,7 +20,9 @@
 -------------------------------------------------------------------------------
 */
 #include "Sockets/ServerSocket.h"
+#include <csignal>
 #include <thread>
+#include "ExitSignal.h"
 #include "SocketStream.h"
 #include "Sockets/Connection.h"
 #include "Thread/Runner.h"
@@ -90,6 +92,17 @@ namespace Rt2::Sockets
         }
     }
 
+    void ServerSocket::waitSignaled()
+    {
+        if (_main)
+        {
+            const ExitSignal sig;
+            while (!sig.signaled())
+                Thread::Thread::yield();
+            _main->stop();
+        }
+    }
+
     void ServerSocket::stop()
     {
         if (_main)
@@ -104,6 +117,11 @@ namespace Rt2::Sockets
     void ServerSocket::connect(const ConnectionAccepted& onAccept)
     {
         _accepted = onAccept;
+    }
+
+    void ServerSocket::signal()
+    {
+        std::raise(SIGINT);
     }
 
     void ServerSocket::connected(const Net::Socket& socket) const

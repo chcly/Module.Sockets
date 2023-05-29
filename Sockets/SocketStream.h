@@ -20,6 +20,8 @@
 -------------------------------------------------------------------------------
 */
 #pragma once
+#include <istream>
+#include <ostream>
 #include "Sockets/PlatformSocket.h"
 
 namespace Rt2::Sockets
