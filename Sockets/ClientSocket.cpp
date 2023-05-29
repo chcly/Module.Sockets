@@ -21,7 +21,6 @@
 */
 #include "Sockets/ClientSocket.h"
 #include "Sockets/Connection.h"
-#include "Threads/Thread.h"
 #include "Utils/Exception.h"
 #include "Utils/FixedString.h"
 

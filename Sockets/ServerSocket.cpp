@@ -23,24 +23,21 @@
 #include <thread>
 #include "SocketStream.h"
 #include "Sockets/Connection.h"
-#include "Threads/CriticalSection.h"
-#include "Threads/Task.h"
-#include "Threads/Thread.h"
+#include "Thread/Runner.h"
 #include "Utils/Exception.h"
 
 namespace Rt2::Sockets
 {
-    class ServerThread final : public Threads::Thread
+    class ServerThread final : public Thread::Runner
     {
     private:
-        Threads::CriticalSection _cs;
-        bool                     _status{true};
-        const ServerSocket*      _socket{nullptr};
+        bool                _status{true};
+        const ServerSocket* _socket{nullptr};
 
     private:
-        int update() override
+        void update() override
         {
-            while (_status)
+            while (isRunningUnlocked())
             {
                 Net::Connection client;
                 if (const Net::Socket sock = Net::accept(_socket->_server, client);
@@ -53,22 +50,15 @@ namespace Rt2::Sockets
                 {
                     // non-blocking, so exit signal handlers can
                     // process an exit gracefully.
-                    yield();
+                    Thread::Thread::yield();
                 }
             }
-            return 0;
         }
 
     public:
         explicit ServerThread(const ServerSocket* parent) :
             _socket(parent)
         {
-        }
-
-        void stop()
-        {
-            ScopeLockCs(_cs);
-            _status = false;
         }
     };
 
