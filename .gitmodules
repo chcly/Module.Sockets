@@ -6,7 +6,7 @@
 	url = https://github.com/CharlesCarley/CMakeModules.git
 [submodule "Internal/Utils"]
 	path = Internal/Utils
-	url = https://github.com/CharlesCarley/Module.Utils.git
-[submodule "Internal/Threads"]
-	path = Internal/Threads
-	url = https://github.com/CharlesCarley/Module.Threads.git
+	url = https://github.com/chcly/Module.Utils.git
+[submodule "Internal/Thread"]
+	path = Internal/Thread
+	url = https://github.com/chcly/Module.Thread.git
