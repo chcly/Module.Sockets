@@ -45,7 +45,6 @@ namespace Rt2::Sockets
 
         const Net::Socket& socket() const;
 
-    private:
         void close();
     };
 
