@@ -22,7 +22,6 @@
 #include "Sockets/ClientSocket.h"
 #include "Sockets/Connection.h"
 #include "Utils/Exception.h"
-#include "Utils/FixedString.h"
 
 namespace Rt2::Sockets
 {
@@ -61,6 +60,9 @@ namespace Rt2::Sockets
     {
         try
         {
+            if (_client)
+                close();
+
             _client = create(Net::AddrINet, Net::Stream, Net::ProtoUnspecified, true);
             if (_client == Net::InvalidSocket)
                 throw Exception("failed to create socket");

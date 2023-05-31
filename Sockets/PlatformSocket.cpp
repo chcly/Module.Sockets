@@ -26,6 +26,8 @@
 #include "Connection.h"
 #include "Utils/Char.h"
 #include "Utils/Exception.h"
+#include "Utils/Definitions.h"
+#include "Utils/TextStreamWriter.h"
 
 #ifndef _WIN32
     #include <fcntl.h>
@@ -35,7 +37,7 @@
     #include <cstring>
 #endif
 
-//#define VERBOSE_DEBUG
+// #define VERBOSE_DEBUG
 
 namespace Rt2::Sockets::Net
 {
@@ -360,11 +362,6 @@ namespace Rt2::Sockets::Net
         {
             bytesRead  = rl;
             buffer[rl] = 0;
-
-            // There is a bug lurking here,
-            // when it equals the bufLen and there is no
-            // more data to read. (another call will block)
-            // which is not the desired behavior. AKA bug...
             if (rl < bufLen)
                 return Done;
             return Ok;
@@ -393,7 +390,7 @@ namespace Rt2::Sockets::Net
             return -1;
         }
 
-        InputFileStream ifs(fileName, std::ios::ate | std::ios::binary);
+        InputFileStream ifs(fileName, std::ios_base::ate | std::ios_base::binary);
         if (!ifs.is_open())
         {
             Console::writeError("failed to open file ", fileName);
@@ -401,7 +398,7 @@ namespace Rt2::Sockets::Net
         }
 
         std::streamsize bufLen = ifs.tellg();
-        ifs.seekg(0, std::ios::beg);
+        ifs.seekg(0, std::ios_base::beg);
         if (bufLen <= 0)
         {
             Console::writeError("the supplied file is empty", fileName);
@@ -593,15 +590,15 @@ namespace Rt2::Sockets::Net
     {
         OutputStringStream oss;
         int                i = 0;
+
         for (const auto& [name, address, family, type, protocol] : info)
         {
-            oss << "Host[" << i++ << "] {" << std::endl;
-            oss << "    name     : " << name << std::endl;
-            oss << "    address  : " << address << std::endl;
-            oss << "    family   : " << toString(family) << std::endl;
-            oss << "    type     : " << toString(type) << std::endl;
-            oss << "    protocol : " << toString(protocol) << std::endl;
-            oss << "}" << std::endl;
+            Ts::println(oss, "Host[", i++, "]");
+            Ts::println(oss, " - name:     ", name);
+            Ts::println(oss, " - address:  ", address);
+            Ts::println(oss, " - family:   ", toString(family));
+            Ts::println(oss, " - type:     ", toString(type));
+            Ts::println(oss, " - protocol: ", toString(protocol));
         }
         return oss.str();
     }
