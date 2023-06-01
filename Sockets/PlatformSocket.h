@@ -22,15 +22,15 @@
 #pragma once
 
 #ifdef _WIN32
-#include <WinSock2.h>
-#include "WS2tcpip.h"
+    #include <WinSock2.h>
+    #include "WS2tcpip.h"
 #else
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/signal.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+    #include <arpa/inet.h>
+    #include <netdb.h>
+    #include <netinet/in.h>
+    #include <sys/signal.h>
+    #include <sys/socket.h>
+    #include <sys/time.h>
 #endif
 #include <cstdint>
 #include "Utils/String.h"
@@ -126,7 +126,7 @@ namespace Rt2::Sockets::Net
         AddressFamily  addressFamily,
         SocketType     type,
         ProtocolFamily protocolFamily = ProtoUnspecified,
-        bool block=false);
+        bool           block          = false);
 
     extern void close(const Socket& sock);
 
@@ -150,20 +150,27 @@ namespace Rt2::Sockets::Net
     extern uint16_t NetworkToHostShort(const uint16_t& inp);
 
     extern Status bind(const Socket& sock, SocketInputAddress& addr);
+
     extern Status listen(const Socket& sock, int32_t backlog);
 
     extern Status connect(const Socket& sock, const String& str, uint16_t port);
 
     extern Socket accept(const Socket& sock);
+
     extern Socket accept(const Socket& sock, SocketInputAddress& dest);
+
     extern Socket accept(const Socket& sock, Connection& result);
 
     extern Status readBuffer(const Socket& sock, char* buffer, int bufLen, int& bytesRead);
-    extern int    writeBuffer(const Socket& sock, const void* buffer, size_t bufLen);
-    extern int    writeFile(const Socket& sock, const char* fileName);
+
+    extern int writeBuffer(const Socket& sock, const void* buffer, size_t bufLen);
+
+    extern int writeFile(const Socket& sock, const char* fileName);
 
     extern void printHex(const char* buffer, uint32_t len);
+
     extern void printBuffer(const char* buffer, uint32_t len);
+
     extern void printHex(OStream& dest, const char* buffer, uint32_t len);
 
     struct Host
@@ -175,7 +182,6 @@ namespace Rt2::Sockets::Net
         ProtocolFamily protocol{ProtoUnspecified};
     };
 
-
     using HostInfo = std::vector<Host>;
 
     bool getHostInfo(HostInfo& inf, const String& name);
@@ -183,4 +189,4 @@ namespace Rt2::Sockets::Net
 
     extern String toString(const HostInfo& info);
 
-}  // namespace Hack::Sockets
+}  // namespace Rt2::Sockets::Net
