@@ -23,6 +23,7 @@
 #include "Sockets/Connection.h"
 #include "Utils/Exception.h"
 
+
 namespace Rt2::Sockets
 {
     ClientSocket::ClientSocket(const String&  ipv4,
@@ -72,7 +73,7 @@ namespace Rt2::Sockets
         }
         catch (Exception& ex)
         {
-            Console::writeError(ex.what());
+            Console::println(ex.what());
             close();
         }
     }
