@@ -67,7 +67,7 @@ GTEST_TEST(Sockets, GetHeaders)
             br <= 1024)
         {
             buffer[br] = 0;
-            printBuffer(buffer, (uint32_t)br);
+            Console::hexdump(buffer, (uint32_t)br);
         }
     }
 }
