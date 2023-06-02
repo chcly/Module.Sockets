@@ -35,13 +35,6 @@
 #include <cstdint>
 #include "Utils/String.h"
 
-/**
- * \brief Defines a thin wrapper for the underlying platform socket layer.
- *
- * The purpose of this library is to resolve cross platform discrepancies
- * between platform socket implementations.
- *
- */
 namespace Rt2::Sockets::Net
 {
     constexpr int MaxBufferSize = 0x7FFFFF;
@@ -93,7 +86,9 @@ namespace Rt2::Sockets::Net
     };
 
     String toString(const AddressFamily& addressFamily);
+
     String toString(const ProtocolFamily& protocolFamily);
+
     String toString(const SocketType& socketType);
 
     enum ProtocolLevel
@@ -120,6 +115,7 @@ namespace Rt2::Sockets::Net
     extern void ensureInitialized();
 
     extern void initialize();
+
     extern void finalize();
 
     extern Socket create(
@@ -144,9 +140,13 @@ namespace Rt2::Sockets::Net
         const String&       address);
 
     extern uint32_t AsciiToNetworkIpV4(const String& inp);
-    extern String   NetworkToAsciiIpV4(const uint32_t& inp);
+
+    extern String NetworkToAsciiIpV4(const uint32_t& inp);
+
     extern uint32_t NetworkToHostLong(const uint32_t& inp);
+
     extern uint16_t HostToNetworkShort(const uint16_t& inp);
+
     extern uint16_t NetworkToHostShort(const uint16_t& inp);
 
     extern Status bind(const Socket& sock, SocketInputAddress& addr);
@@ -165,14 +165,6 @@ namespace Rt2::Sockets::Net
 
     extern int writeBuffer(const Socket& sock, const void* buffer, size_t bufLen);
 
-    extern int writeFile(const Socket& sock, const char* fileName);
-
-    extern void printHex(const char* buffer, uint32_t len);
-
-    extern void printBuffer(const char* buffer, uint32_t len);
-
-    extern void printHex(OStream& dest, const char* buffer, uint32_t len);
-
     struct Host
     {
         String         name;
@@ -185,6 +177,7 @@ namespace Rt2::Sockets::Net
     using HostInfo = std::vector<Host>;
 
     bool getHostInfo(HostInfo& inf, const String& name);
+
     Host INetHost(const HostInfo& inf);
 
     extern String toString(const HostInfo& info);

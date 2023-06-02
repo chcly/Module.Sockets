@@ -25,8 +25,8 @@
 #include <iostream>
 #include "Connection.h"
 #include "Utils/Char.h"
-#include "Utils/Exception.h"
 #include "Utils/Definitions.h"
+#include "Utils/Exception.h"
 #include "Utils/TextStreamWriter.h"
 
 #ifndef _WIN32
@@ -245,7 +245,9 @@ namespace Rt2::Sockets::Net
             if (!isDecimal(ch))
                 return false;
         }
-        return true;
+
+        const int valCheck = Char::toInt32(inp);
+        return valCheck <= 255;
     }
 
     uint32_t AsciiToNetworkIpV4(const String& inp)
@@ -265,7 +267,7 @@ namespace Rt2::Sockets::Net
         stat      = stat && isOnlyDecimal(sa[3]);
 
         if (!stat)
-            throw Exception("Invalid IpV4 address");
+            throw Exception("Invalid IpV4 address: ", inp);
 
         char buf[33]{};
         inet_pton(AF_INET, inp.c_str(), buf);
@@ -382,125 +384,6 @@ namespace Rt2::Sockets::Net
         return send(sock, (const char*)buffer, (int)bufLen, 0);
     }
 
-    int writeFile(const Socket& sock, const char* fileName)
-    {
-        if (!fileName)
-        {
-            printf("invalid file name\n");
-            return -1;
-        }
-
-        InputFileStream ifs(fileName, std::ios_base::ate | std::ios_base::binary);
-        if (!ifs.is_open())
-        {
-            Console::writeError("failed to open file ", fileName);
-            return -1;
-        }
-
-        std::streamsize bufLen = ifs.tellg();
-        ifs.seekg(0, std::ios_base::beg);
-        if (bufLen <= 0)
-        {
-            Console::writeError("the supplied file is empty", fileName);
-            return -1;
-        }
-
-        if (bufLen > 0xFFFF)
-        {
-            Console::writeError("the size of the supplied file: ",
-                                fileName,
-                                ", is larger than the maximum "
-                                "allowed file size of 0xFFFF");
-            return -1;
-        }
-
-        char* mem = (char*)malloc(bufLen + 2);
-        if (mem == nullptr)
-        {
-            Console::writeError("invalid alloc");
-            return -1;
-        }
-
-        ifs.read(mem, bufLen);
-        mem[bufLen] = 0;
-
-        bufLen = writeBuffer(sock, mem, bufLen);
-        free(mem);
-        return (int)bufLen;
-    }
-
-    void printHexLine(OStream&     dest,
-                      const char*  buffer,
-                      const size_t offs,
-                      const size_t max)
-    {
-        size_t i, j;
-
-        unsigned char ch;
-        for (i = 0; i < 16; ++i)
-        {
-            j = i + offs;
-            if (i % 9 == 8)
-                dest << ' ';
-            if (j >= max)
-                dest << "00 ";
-            else
-            {
-                ch = buffer[j];
-                dest << std::setfill('0')
-                     << std::setw(2)
-                     << std::hex << (unsigned int)ch
-                     << ' ';
-            }
-        }
-
-        dest << '|';
-        for (i = 0; i < 16; ++i)
-        {
-            j = i + offs;
-            if (j >= max)
-                dest << '.';
-            else
-            {
-                ch = buffer[j];
-                if (ch >= 32 && ch < 127)
-                    dest << ch;
-                else
-                    dest << '.';
-            }
-        }
-
-        dest << '|';
-        dest << '\n';
-    }
-
-    void printHex(const char* buffer, const uint32_t len)
-    {
-        printHex(std::cout, buffer, len);
-    }
-
-    void printHex(OStream& dest, const char* buffer, const uint32_t len)
-    {
-        if (!buffer)
-            throw Exception("Invalid buffer supplied ");
-
-        for (size_t i = 0; i < len; i += 16)
-            printHexLine(dest, buffer, i, len);
-    }
-
-    void printBuffer(const char* buffer, const uint32_t len)
-    {
-        if (!buffer)
-            throw Exception("Invalid buffer supplied ");
-
-        for (size_t i = 0; i < len; i++)
-        {
-            if (const char ch = buffer[i];
-                ch == '\n' || ch >= 32 && ch < 127)
-                putchar(ch);
-        }
-    }
-
     bool getHostInfo(HostInfo& inf, const String& name)
     {
         addrinfo* info;
@@ -589,7 +472,8 @@ namespace Rt2::Sockets::Net
     String toString(const HostInfo& info)
     {
         OutputStringStream oss;
-        int                i = 0;
+
+        int i = 0;
 
         for (const auto& [name, address, family, type, protocol] : info)
         {

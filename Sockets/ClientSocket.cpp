@@ -22,6 +22,7 @@
 #include "Sockets/ClientSocket.h"
 #include "Sockets/Connection.h"
 #include "Utils/Exception.h"
+#include "Utils/LogFile.h"
 
 
 namespace Rt2::Sockets
@@ -73,7 +74,7 @@ namespace Rt2::Sockets
         }
         catch (Exception& ex)
         {
-            Console::println(ex.what());
+            Log::println(ex.what());
             close();
         }
     }
