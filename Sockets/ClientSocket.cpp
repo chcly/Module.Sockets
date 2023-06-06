@@ -46,7 +46,7 @@ namespace Rt2::Sockets
 
     void ClientSocket::write(const String& msg) const
     {
-        if (_client)
+        if (isOpen())
             Net::writeBuffer(_client, msg.c_str(), msg.size());
     }
 
@@ -62,8 +62,7 @@ namespace Rt2::Sockets
     {
         try
         {
-            if (_client)
-                close();
+            if (isOpen()) close();
 
             _client = create(Net::AddrINet, Net::Stream, Net::ProtoUnspecified, true);
             if (_client == Net::InvalidSocket)
@@ -81,7 +80,7 @@ namespace Rt2::Sockets
 
     void ClientSocket::close()
     {
-        if (_client)
+        if (isOpen())
         {
             Net::close(_client);
             _client = Net::InvalidSocket;

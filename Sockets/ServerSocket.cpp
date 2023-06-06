@@ -22,9 +22,8 @@
 #include "Sockets/ServerSocket.h"
 #include <csignal>
 #include <thread>
-#include "ExitSignal.h"
-#include "SocketStream.h"
 #include "Sockets/Connection.h"
+#include "Sockets/ExitSignal.h"
 #include "Thread/Runner.h"
 #include "Utils/Exception.h"
 
@@ -33,10 +32,10 @@ namespace Rt2::Sockets
     class ServerThread final : public Thread::Runner
     {
     private:
-        bool                _status{true};
         const ServerSocket* _socket{nullptr};
 
     private:
+
         void update() override
         {
             while (isRunningUnlocked())
@@ -75,8 +74,7 @@ namespace Rt2::Sockets
     ServerSocket::~ServerSocket()
     {
         stop();
-
-        if (_server)
+        if (_server != Net::InvalidSocket)
         {
             Net::close(_server);
             _server = Net::InvalidSocket;
@@ -92,7 +90,7 @@ namespace Rt2::Sockets
         }
     }
 
-    void ServerSocket::waitSignaled()
+    void ServerSocket::waitSignaled() const
     {
         if (_main)
         {
@@ -121,7 +119,7 @@ namespace Rt2::Sockets
 
     void ServerSocket::signal()
     {
-        std::raise(SIGINT);
+        (void)std::raise(SIGINT);
     }
 
     void ServerSocket::connected(const Net::Socket& socket) const

@@ -45,7 +45,7 @@ namespace Rt2::Sockets
 
         void start();
 
-        void waitSignaled();
+        void waitSignaled() const;
 
         void stop();
 
