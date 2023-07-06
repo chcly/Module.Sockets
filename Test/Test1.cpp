@@ -8,90 +8,132 @@
 
 using namespace Rt2;
 
+GTEST_TEST(Sockets, Sock_001)
+{
+    using namespace Sockets;
+
+    Socket sock;
+    sock.create();
+    EXPECT_TRUE(sock.isValid());
+    EXPECT_EQ(sock.protocol(), ProtocolUnknown);
+    EXPECT_EQ(sock.family(), AddressFamilyINet);
+    EXPECT_EQ(sock.type(), SocketStream);
+
+    sock.close();
+    EXPECT_FALSE(sock.isValid());
+}
+
+GTEST_TEST(Sockets, Sock_002)
+{
+    using namespace Sockets;
+
+    Socket sock;
+    sock.create();
+    EXPECT_TRUE(sock.isValid());
+
+    EXPECT_FALSE(sock.reuseAddress());
+    sock.setReuseAddress(true);
+    EXPECT_TRUE(sock.reuseAddress());
+
+    EXPECT_FALSE(sock.keepAlive());
+    sock.setKeepAlive(true);
+    EXPECT_TRUE(sock.keepAlive());
+
+    EXPECT_FALSE(sock.isDebug());
+    sock.setDebug(true);
+#if RT_PLATFORM == RT_PLATFORM_WINDOWS
+    EXPECT_TRUE(sock.isDebug());
+#else
+    EXPECT_FALSE(sock.isDebug());  // will fail if run with privileged access
+#endif
+
+    EXPECT_TRUE(sock.isRouting());
+    sock.setRoute(false);
+    EXPECT_FALSE(sock.isRouting());
+
+#if RT_PLATFORM == RT_PLATFORM_WINDOWS
+    EXPECT_EQ(sock.maxSendBuffer(), 0x10000);
+    EXPECT_EQ(sock.maxReceiveBuffer(), 0x10000);
+
+    sock.setMaxSendBuffer(0x400);
+    sock.setMaxReceiveBuffer(0x400);
+
+    EXPECT_EQ(sock.maxSendBuffer(), 0x400);
+    EXPECT_EQ(sock.maxReceiveBuffer(), 0x400);
+#endif
+
+    EXPECT_EQ(sock.sendTimeout(), 0);
+    EXPECT_EQ(sock.receiveTimeout(), 0);
+
+    sock.setSendTimeout(1234568);
+    sock.setReceiveTimeout(1234568);
+
+    EXPECT_EQ(sock.sendTimeout(), 1234568);
+    EXPECT_EQ(sock.receiveTimeout(), 1234568);
+
+    sock.close();
+    EXPECT_FALSE(sock.isValid());
+}
+
 GTEST_TEST(Sockets, GetHostInfo)
 {
-    using namespace Sockets::Net;
-    ensureInitialized();
+    using namespace Sockets;
+    
+    const auto en = HostEnumerator("github.com");
 
-    HostInfo inf;
-    getHostInfo(inf, "github.com");
-    EXPECT_FALSE(inf.empty());
+    Host github;
+    EXPECT_TRUE(en.match(github, AddressFamilyINet));
 
-    for (const auto& [name, address, family, type, protocol] : inf)
-    {
-        Console::writeLine("==============");
-        Console::writeLine("Host          : ", name);
-        Console::writeLine("Address       : ", address);
-        Console::writeLine("Protocol      : ", toString(protocol));
-        Console::writeLine("AddressFamily : ", toString(family));
-        Console::writeLine("SocketType    : ", toString(type));
-        Console::writeLine("==============");
-        Console::writeLine("");
-    }
+    HostEnumerator he("github.com");
+    EXPECT_FALSE(he.hosts().empty());
+    he.log(std::cout);
 }
 
 GTEST_TEST(Sockets, GetHeaders)
 {
-    using namespace Sockets::Net;
-    ensureInitialized();
+    using namespace Sockets;
 
-    constexpr const char* name = "google.com";
+    const auto en = HostEnumerator("google.com");
 
-    HostInfo inf;
-    getHostInfo(inf, name);
-    EXPECT_FALSE(inf.empty());
+    Host google;
+    EXPECT_TRUE(en.match(google, AddressFamilyINet));
 
-    Host inet = INetHost(inf);
-    EXPECT_FALSE(inet.address.empty());
-
-    Console::writeLine(toString(inf));
-
-    const Socket sock = create(AddrINet, Stream, ProtoUnspecified, true);
+    const PlatformSocket sock = Net::connect(google, 80);
     EXPECT_NE(sock, InvalidSocket);
 
-    const int res = connect(sock, inet.address, 80);
-    EXPECT_EQ(res, Ok);
+    OutputSocketStream bs(sock);
+    bs.write("HEAD / HTTP/1.1\r\n\r\n");
 
-    OutputStringStream oss;
-    oss << "HEAD / HTTP/1.1\r\n\r\n";
-
-    const String str = oss.str();
-    writeBuffer(sock, str.c_str(), str.size());
-
-    char buffer[1025]{};
-
-    Sockets::SocketStream ss(sock);
-    while (!ss.eof())
-    {
-        if (const size_t br = ss.read(buffer, 1024);
-            br <= 1024)
-        {
-            buffer[br] = 0;
-            Console::hexdump(buffer, (uint32_t)br);
-        }
-    }
+    InputSocketStream is(sock);
+    is.setBlockSize(1124);
+    Console::hexdump(is.string());
 }
 
 GTEST_TEST(Sockets, LocalLink)
 {
+    using namespace Sockets;
     bool connected = false;
 
-    Sockets::ServerSocket ss("127.0.0.1", 8080);
+    ServerSocket ss("127.0.0.1", 8080);
     ss.connect(
-        [&connected](const Sockets::Net::Socket& sock)
+        [&connected, &ss](const PlatformSocket& sock)
         {
             connected = true;
-            Sockets::SocketInputStream si(sock);
+            InputSocketStream si(sock);
+            si.setTimeout(2500);
 
             String msg;
-            si >> msg;
-            Console::println(msg);
-            Sockets::ServerSocket::signal();
-        });
-    ss.start();
+            si.get(msg);
+            EXPECT_EQ(msg, "Hello");
 
-    Sockets::ClientSocket cs("127.0.0.1", 8080);
-    cs.write("Hello ");
-    ss.waitSignaled();
+            si.get(msg);
+            EXPECT_EQ(msg, "World");
+
+            EXPECT_TRUE(si.eof());
+            ss.stop();
+        });
+    const ClientSocket cs("127.0.0.1", 8080);
+    cs.write("Hello World");
+    ss.run();
     EXPECT_TRUE(connected);
 }

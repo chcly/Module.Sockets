@@ -20,24 +20,21 @@
 -------------------------------------------------------------------------------
 */
 #include "Sockets/ClientSocket.h"
+#include "SocketStream.h"
 #include "Sockets/Connection.h"
 #include "Utils/Exception.h"
 #include "Utils/LogFile.h"
-
+#include "Utils/Streams/StreamBase.h"
 
 namespace Rt2::Sockets
 {
     ClientSocket::ClientSocket(const String&  ipv4,
                                const uint16_t port)
     {
-        Net::ensureInitialized();
         open(ipv4, port);
     }
 
-    ClientSocket::ClientSocket()
-    {
-        Net::ensureInitialized();
-    }
+    ClientSocket::ClientSocket() = default;
 
     ClientSocket::~ClientSocket()
     {
@@ -46,29 +43,42 @@ namespace Rt2::Sockets
 
     void ClientSocket::write(const String& msg) const
     {
-        if (isOpen())
-            Net::writeBuffer(_client, msg.c_str(), msg.size());
+        RT_GUARD_VOID(isValid())
+        Net::writeSocket(_sock, msg.c_str(), msg.size());
     }
 
     void ClientSocket::write(IStream& msg) const
     {
-        OutputStringStream oss;
-        while (!msg.eof())
-            oss.put((char)msg.get());
-        write(oss.str());
+        OutputBufferStream bs;
+        bs.copy(msg);
+        write(bs.string());
+    }
+
+    void ClientSocket::read(OStream& is) const
+    {
+        RT_GUARD_VOID(isValid())
+        InputSocketStream iss(_sock);
+        iss.copyTo(is);
     }
 
     void ClientSocket::open(const String& ipv4, uint16_t port)
     {
         try
         {
-            if (isOpen()) close();
-
-            _client = create(Net::AddrINet, Net::Stream, Net::ProtoUnspecified, true);
-            if (_client == Net::InvalidSocket)
+            setFamily(AddressFamilyINet);
+            setType(SocketStream);
+            setProtocol(ProtocolIpTcp);
+            create();
+            if (!isValid())
                 throw Exception("failed to create socket");
 
-            if (Net::connect(_client, ipv4, port) != Net::Ok)
+            setKeepAlive(true);
+            setMaxSendBuffer(Default::IoBufferSize);
+            setMaxReceiveBuffer(Default::IoBufferSize);
+            setSendTimeout(Default::SocketTimeOut);
+            setReceiveTimeout(Default::SocketTimeOut);
+
+            if (Net::connect(_sock, ipv4, port) != OkStatus)
                 throw Exception("failed to connect to ", ipv4, ':', port);
         }
         catch (Exception& ex)
@@ -77,14 +87,4 @@ namespace Rt2::Sockets
             close();
         }
     }
-
-    void ClientSocket::close()
-    {
-        if (isOpen())
-        {
-            Net::close(_client);
-            _client = Net::InvalidSocket;
-        }
-    }
-
 }  // namespace Rt2::Sockets

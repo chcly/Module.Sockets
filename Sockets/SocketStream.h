@@ -23,37 +23,42 @@
 #include <istream>
 #include <ostream>
 #include "Sockets/PlatformSocket.h"
+#include "Utils/Streams/StreamBase.h"
 
 namespace Rt2::Sockets
 {
-    class SocketOutputStream final : public std::ostream
+    namespace Default
+    {
+        constexpr size_t ScratchSize = IoBufferSize;
+        constexpr int    TimeOut     = SocketTimeOut;
+    }  // namespace Default
+
+
+    class OutputSocketStream final : public std::ostream
     {
     public:
         class StreamBuffer final : public std::streambuf
         {
         private:
-            Net::Socket _sock;
+            PlatformSocket _sock;
 
         public:
-            explicit StreamBuffer(const Net::Socket& sock) :
-                std::streambuf(),
+            explicit StreamBuffer(const PlatformSocket& sock) :
                 _sock(sock)
             {
             }
 
         protected:
-            int_type overflow(const int_type ch) override  // put a character to stream (always fail)
+            int_type overflow(const int_type ch) override
             {
-                if (ch > 0)
-                    return Net::writeBuffer(_sock, &ch, 1);
+                if (ch > 0) return Net::writeSocket(_sock, &ch, 1, Default::TimeOut);
                 return traits_type::eof();
             }
 
             std::streamsize xsputn(const char* ptr, const std::streamsize count) override
             {
-                if (ptr)
-                    return Net::writeBuffer(_sock, ptr, count);
-                return 0;
+                if (ptr) return Net::writeSocket(_sock, ptr, count, Default::TimeOut);
+                return traits_type::eof();
             }
         };
 
@@ -61,88 +66,111 @@ namespace Rt2::Sockets
         StreamBuffer _buffer;
 
     public:
-        explicit SocketOutputStream(const Net::Socket& socket) :
+        explicit OutputSocketStream(const PlatformSocket& socket) :
             std::ostream(&_buffer),
             _buffer(socket)
         {
         }
+
+        template <typename... Args>
+        void println(Args&&... args)
+        {
+            OStream& os = *this;
+            ((os << std::forward<Args>(args)), ...);
+            os << std::endl;
+        }
+
+        template <typename... Args>
+        void write(Args&&... args)
+        {
+            OStream& os = *this;
+            ((os << std::forward<Args>(args)), ...);
+        }
     };
 
-    class SocketStream
+    class InputSocketStream final : public std::istream
     {
-    private:
-        Net::Socket _sock;
-        Net::Status _status;
-
     public:
-        explicit SocketStream(Net::Socket sock);
-        ~SocketStream() = default;
+        using BufferType       = Stream::BufferType;
+        using PointerType      = BufferType::PointerType;
+        using ConstPointerType = BufferType::ConstPointerType;
 
-        size_t read(void* destination, const size_t& length);
-
-        bool eof() const;
-    };
-
-    inline bool SocketStream::eof() const
-    {
-        return _status != Net::Ok;
-    }
-
-    template <size_t ScratchSize = 0x7FFF>
-    class SocketInputStream final : public std::istream
-    {
     public:
         class StreamBuffer final : public std::streambuf
         {
         private:
-            Net::Socket  _sock;
-            char*        _scratch;
-            char*        _begin;
-            char*        _end;
-            const size_t _max;
-            Net::Status  _status;
+            PlatformSocket _sock{InvalidSocket};
+            BufferType     _buffer;
+            PointerType    _begin{nullptr};
+            PointerType    _end{nullptr};
+            std::streampos _total{0};
+            Status         _status{OkStatus};
+            int            _timeout{Default::TimeOut};
+            int            _scratch{Default::ScratchSize};
 
-            int_type more()
+            bool canRead() const
             {
-                if (_status == Net::Done)
+                return _status == OkStatus;
+            }
+
+            int_type readMore()
+            {
+                if (!canRead())
                     return traits_type::eof();
 
-                int br  = 0;
-                _status = Net::readBuffer(_sock,
+                if (_scratch < 16)  // bare bone minimum to read
+                    return traits_type::eof();
+
+                int br = 0;
+                _buffer.reserve(_buffer.size() + _scratch);
+
+                _status = Net::readSocket(_sock,
+                                          _buffer._end(),
                                           _scratch,
-                                          (int)_max,
-                                          br);
+                                          br,
+                                          _timeout);
 
-                const int_type bytesRead = br;
-
-                _scratch[bytesRead] = 0;
-
-                if (_status != Net::Error)
+                _buffer.resizeFast(_buffer.size() + br);
+                if (br > 0)
                 {
-                    _begin = _scratch;
-                    _end   = _scratch + bytesRead;
+                    _begin = _buffer.begin() + _total;
+                    _end   = _begin + br;
+                    RT_ASSERT(_end <= _buffer.end())
+                    _total += br;
                 }
-                return bytesRead;
+                else
+                {
+                    _begin = _end = nullptr;
+                }
+                return br;
             }
 
         public:
-            explicit StreamBuffer(const Net::Socket& sock) :
-                std::streambuf(),
-                _sock(sock),
-                _begin(nullptr),
-                _end(nullptr),
-                _max(ScratchSize),
-                _status(Net::Ok)
+            explicit StreamBuffer(const PlatformSocket& sock) :
+                _sock(sock)
             {
-                _scratch = new char[_max + 1];
-                more();
             }
 
-            ~StreamBuffer() override
+            ~StreamBuffer() override = default;
+
+            void string(String& str)
             {
-                _begin = _end = nullptr;
-                delete[] _scratch;
-                _scratch = nullptr;
+                str = {
+                    _buffer.data(),
+                    _buffer.size(),
+                };
+            }
+
+            Stream::BufferType& iBuf() { return _buffer; }
+
+            void setTimeout(const int timeout)
+            {
+                _timeout = timeout;
+            }
+
+            void setBlockSize(const size_t block)
+            {
+                _scratch = Clamp<int>((int)block, Default::ScratchSize, 0x7FFF);
             }
 
         protected:
@@ -151,40 +179,44 @@ namespace Rt2::Sockets
                 return _end - _begin;
             }
 
-            // Translation: get a character from stream, but don't point past it
-            int_type underflow() override
+            bool isFinished()
             {
-                if (_status == Net::Error)
-                    return traits_type::eof();
-
                 if (_begin == _end)
                 {
-                    if (_status == Net::Done)
-                        return traits_type::eof();
-                    more();
+                    if (!canRead())
+                        return true;
+                    readMore();
                 }
-                if (_status == Net::Error || !_begin)
-                    return traits_type::eof();
-                return traits_type::to_int_type(*_begin);
+                return false;
             }
 
-            // Translation: get a character and point past it.
+            int_type underflow() override
+            {
+                if (isFinished())
+                    return traits_type::eof();
+                if (_begin)
+                    return traits_type::to_int_type(*_begin);
+                return traits_type::eof();
+            }
+
             int_type uflow() override
             {
-                if (_status == Net::Error)
+                if (isFinished())
                     return traits_type::eof();
+                if (_begin && _begin + 1 <= _end)
+                    return traits_type::to_int_type(*_begin++);
+                return traits_type::eof();
+            }
 
-                if (_begin == _end)
+            int_type pbackfail(int_type) override
+            {
+                if (_total > 0 && _begin)
                 {
-                    if (_status == Net::Done)
-                        return traits_type::eof();
-                    more();
+                    _total -= 1;
+                    --_begin;
+                    return 1;
                 }
-
-                if (_status == Net::Error || !_begin)
-                    return traits_type::eof();
-
-                return traits_type::to_int_type(*_begin++);
+                return traits_type::eof();
             }
         };
 
@@ -192,13 +224,68 @@ namespace Rt2::Sockets
         StreamBuffer _buffer;
 
     public:
-        explicit SocketInputStream(const Net::Socket& socket) :
+        explicit InputSocketStream(const PlatformSocket& socket) :
             std::istream(&_buffer),
             _buffer(socket)
         {
         }
-    };
 
-    using DefaultInputStream = SocketInputStream<0x7FFF>;
+        void string(String& str)
+        {
+            _buffer.string(str);
+        }
+
+        void setTimeout(const int timeout)
+        {
+            _buffer.setTimeout(timeout);
+        }
+
+        void setBlockSize(const size_t size)
+        {
+            _buffer.setBlockSize(size);
+        }
+
+        String string()
+        {
+            String copy;
+            copyTo(copy);
+            return copy;
+        }
+
+        void copyTo(OStream& in)
+        {
+            Stream::BufferType buf;
+            readTo(buf);
+            in.write(buf.data(), (std::streamsize)buf.size());
+        }
+
+        void copyTo(String& in)
+        {
+            Stream::BufferType buf;
+            readTo(buf);
+            in.assign(buf.data(), (std::streamsize)buf.size());
+        }
+
+        template <typename... Args>
+        void get(Args&&... args)
+        {
+            IStream& os = *this;
+            ((os >> std::forward<Args>(args)), ...);
+        }
+
+    private:
+
+        void readTo(Stream::BufferType& buf)
+        {
+            buf.resizeFast(0);
+
+            while (!eof())
+            {
+                buf.reserve(buf.size() + Default::ScratchSize);
+                read(buf._end(), Default::ScratchSize);
+                buf.resizeFast(buf.size() + gcount());
+            }
+        }
+    };
 
 }  // namespace Rt2::Sockets

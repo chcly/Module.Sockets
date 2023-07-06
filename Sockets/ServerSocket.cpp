@@ -21,10 +21,9 @@
 */
 #include "Sockets/ServerSocket.h"
 #include <csignal>
-#include <thread>
 #include "Sockets/Connection.h"
-#include "Sockets/ExitSignal.h"
 #include "Thread/Runner.h"
+#include "Thread/SharedValue.h"
 #include "Utils/Exception.h"
 
 namespace Rt2::Sockets
@@ -35,14 +34,15 @@ namespace Rt2::Sockets
         const ServerSocket* _socket{nullptr};
 
     private:
-
         void update() override
         {
             while (isRunningUnlocked())
             {
-                Net::Connection client;
-                if (const Net::Socket sock = Net::accept(_socket->_server, client);
-                    sock != Net::InvalidSocket)
+                RT_GUARD_CHECK_VOID(_socket && _socket->isValid())
+
+                Connection client;
+                if (const PlatformSocket sock = Net::accept(_socket->_sock, client);
+                    sock != InvalidSocket)
                 {
                     _socket->connected(sock);
                     Net::close(sock);
@@ -67,17 +67,48 @@ namespace Rt2::Sockets
                                const uint16_t port,
                                const uint16_t backlog)
     {
-        Net::ensureInitialized();
         open(ipv4, port, backlog);
     }
 
     ServerSocket::~ServerSocket()
     {
-        stop();
-        if (_server != Net::InvalidSocket)
+        destroy();
+        close();
+    }
+
+    void ServerSocket::open(const String& ipv4, uint16_t port, const uint16_t backlog)
+    {
+        try
         {
-            Net::close(_server);
-            _server = Net::InvalidSocket;
+            setFamily(AddressFamilyINet);
+            setType(SocketStream);
+            setProtocol(ProtocolIpTcp);
+            create();
+            if (!isValid()) throw Exception("failed to create socket");
+
+            setReuseAddress(true);
+            setBlocking(false);
+
+            setMaxReceiveBuffer(Default::IoBufferSize);
+            setMaxSendBuffer(Default::IoBufferSize);
+            setSendTimeout(Default::SocketTimeOut);
+            setReceiveTimeout(Default::SocketTimeOut);
+
+            SocketInputAddress host;
+            Net::Utils::constructInputAddress(host, AddressFamilyINet, port, ipv4);
+
+            if (Net::bind(_sock, host) != OkStatus)
+                throw Exception("Failed to bind server socket to ", ipv4, ':', port);
+
+            if (Net::listen(_sock, backlog) != OkStatus)
+                throw Exception("Failed to listen on the server socket");
+
+            start();
+        }
+        catch (Exception& ex)
+        {
+            Console::println(ex.what());
+            close();
         }
     }
 
@@ -87,29 +118,34 @@ namespace Rt2::Sockets
         {
             _main = new ServerThread(this);
             _main->start();
+            _running = true;
         }
     }
 
-    void ServerSocket::waitSignaled() const
+    void ServerSocket::destroy()
     {
         if (_main)
-        {
-            const ExitSignal sig;
-            while (!sig.signaled())
-                Thread::Thread::yield();
             _main->stop();
+        delete _main;
+        _main = nullptr;
+    }
+
+    void ServerSocket::run()
+    {
+        if (!_main)
+            start();
+
+        if (_main)
+        {
+            while (_running) Thread::Thread::yield();
+            destroy();
         }
     }
 
     void ServerSocket::stop()
     {
-        if (_main)
-        {
-            _main->stop();
-            delete _main;
-            _main = nullptr;
-        }
-        _status = -5;
+        auto lock = Thread::ScopeLock(&_mutex);
+        _running = false;
     }
 
     void ServerSocket::connect(const ConnectionAccepted& onAccept)
@@ -119,53 +155,13 @@ namespace Rt2::Sockets
 
     void ServerSocket::signal()
     {
-        (void)std::raise(SIGINT);
+        //(void)std::raise(SIGINT);
     }
 
-    void ServerSocket::connected(const Net::Socket& socket) const
+    void ServerSocket::connected(const PlatformSocket& socket) const
     {
         if (_accepted)
             _accepted(socket);
-    }
-
-    void ServerSocket::open(const String& ipv4, uint16_t port, const uint16_t backlog)
-    {
-        using namespace Net;
-        try
-        {
-            _server = create(AddrINet,
-                             Stream,
-                             ProtoIpTcp,
-                             false);
-            if (_server == InvalidSocket)
-                throw Exception("failed to create socket");
-
-            constexpr int opt = 1;
-            if (setOption(_server,
-                          SocketLevel,
-                          ReuseAddress,
-                          &opt,
-                          sizeof(int)) != Ok)
-            {
-                throw Exception("Failed to set socket option");
-            }
-
-            SocketInputAddress host;
-            constructInputAddress(host, AddrINet, port, ipv4);
-
-            if (bind(_server, host) != Ok)
-                throw Exception("Failed to bind server socket to ", ipv4, ':', port);
-
-            if (listen(_server, backlog) != Ok)
-                throw Exception("Failed to listen on the server socket");
-
-            _status = 0;
-        }
-        catch (Exception& ex)
-        {
-            Console::writeError(ex.what());
-            _status = -2;
-        }
     }
 
 }  // namespace Rt2::Sockets

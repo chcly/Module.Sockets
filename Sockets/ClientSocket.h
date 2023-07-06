@@ -20,42 +20,23 @@
 -------------------------------------------------------------------------------
 */
 #pragma once
-#include "Sockets/PlatformSocket.h"
-#include "Utils/Definitions.h"
+#include "Sockets/Socket.h"
 
 namespace Rt2::Sockets
 {
-    class ClientSocket
+    class ClientSocket final : public Socket
     {
-    private:
-        Net::Socket _client{Net::InvalidSocket};
-
     public:
         ClientSocket(const String& ipv4, uint16_t port);
         ClientSocket();
-        ~ClientSocket();
+        ~ClientSocket() override;
 
         void write(const String& msg) const;
 
         void write(IStream& msg) const;
 
-        bool isOpen() const;
+        void read(OStream& is) const;
 
         void open(const String& ipv4, uint16_t port);
-
-        const Net::Socket& socket() const;
-
-        void close();
     };
-
-    inline bool ClientSocket::isOpen() const
-    {
-        return _client != Net::InvalidSocket;
-    }
-
-    inline const Net::Socket& ClientSocket::socket() const
-    {
-        return _client;
-    }
-
 }  // namespace Rt2::Sockets

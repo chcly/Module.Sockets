@@ -35,7 +35,7 @@ include_directories(.
     ${CMAKE_CURRENT_BINARY_DIR} 
     ${Utils_INCLUDE} 
     ${Sockets_INCLUDE}
-    ${Threads_INCLUDE}
+    ${Thread_INCLUDE}
 )
 
 add_executable(
@@ -46,7 +46,7 @@ target_link_libraries(${TestTargetName}
     ${GTEST_LIBRARY} 
     ${Utils_LIBRARY} 
     ${Sockets_LIBRARY}
-    ${Threads_LIBRARY}
+    ${Thread_LIBRARY}
 )
 set_target_properties(${TestTargetName} PROPERTIES FOLDER "${TargetGroup}")
 

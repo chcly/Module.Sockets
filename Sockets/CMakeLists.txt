@@ -3,7 +3,10 @@ include(GroupSet)
 
 set_group(Target_SRC
     Source:*.cpp
-    Header:*.h)
+    Header:*.h
+    Source/Net:Net/*.cpp
+    Header/Net:Net/*.h
+)
 
 include_directories(
     ${Utils_INCLUDE} 
