@@ -5,7 +5,7 @@
 #include "Sockets/SocketStream.h"
 #include "Utils/Console.h"
 #include "gtest/gtest.h"
-#define SpecificLocalTesting 0
+//#define SpecificLocalTesting 0
 
 using namespace Rt2;
 
