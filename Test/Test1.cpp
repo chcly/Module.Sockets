@@ -5,6 +5,7 @@
 #include "Sockets/SocketStream.h"
 #include "Utils/Console.h"
 #include "gtest/gtest.h"
+#define SpecificLocalTesting 0
 
 using namespace Rt2;
 
@@ -22,6 +23,8 @@ GTEST_TEST(Sockets, Sock_001)
     sock.close();
     EXPECT_FALSE(sock.isValid());
 }
+
+#ifdef SpecificLocalTesting
 
 GTEST_TEST(Sockets, Sock_002)
 {
@@ -41,17 +44,17 @@ GTEST_TEST(Sockets, Sock_002)
 
     EXPECT_FALSE(sock.isDebug());
     sock.setDebug(true);
-#if RT_PLATFORM == RT_PLATFORM_WINDOWS
+    #if RT_PLATFORM == RT_PLATFORM_WINDOWS
     EXPECT_TRUE(sock.isDebug());
-#else
+    #else
     EXPECT_FALSE(sock.isDebug());  // will fail if run with privileged access
-#endif
+    #endif
 
     EXPECT_TRUE(sock.isRouting());
     sock.setRoute(false);
     EXPECT_FALSE(sock.isRouting());
 
-#if RT_PLATFORM == RT_PLATFORM_WINDOWS
+    #if RT_PLATFORM == RT_PLATFORM_WINDOWS
     EXPECT_EQ(sock.maxSendBuffer(), 0x10000);
     EXPECT_EQ(sock.maxReceiveBuffer(), 0x10000);
 
@@ -60,7 +63,7 @@ GTEST_TEST(Sockets, Sock_002)
 
     EXPECT_EQ(sock.maxSendBuffer(), 0x400);
     EXPECT_EQ(sock.maxReceiveBuffer(), 0x400);
-#endif
+    #endif
 
     EXPECT_EQ(sock.sendTimeout(), 0);
     EXPECT_EQ(sock.receiveTimeout(), 0);
@@ -74,11 +77,12 @@ GTEST_TEST(Sockets, Sock_002)
     sock.close();
     EXPECT_FALSE(sock.isValid());
 }
+#endif
 
 GTEST_TEST(Sockets, GetHostInfo)
 {
     using namespace Sockets;
-    
+
     const auto en = HostEnumerator("github.com");
 
     Host github;
@@ -105,7 +109,7 @@ GTEST_TEST(Sockets, GetHeaders)
     bs.write("HEAD / HTTP/1.1\r\n\r\n");
 
     InputSocketStream is(sock);
-    is.setBlockSize(1124);
+    //is.setBlockSize(1124); // for testing blocking 
     Console::hexdump(is.string());
 }
 
