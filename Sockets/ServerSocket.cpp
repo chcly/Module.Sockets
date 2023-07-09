@@ -21,48 +21,12 @@
 */
 #include "Sockets/ServerSocket.h"
 #include <csignal>
-#include "Sockets/Connection.h"
+#include "Sockets/ServerThread.h"
 #include "Thread/Runner.h"
-#include "Thread/SharedValue.h"
 #include "Utils/Exception.h"
 
 namespace Rt2::Sockets
 {
-    class ServerThread final : public Thread::Runner
-    {
-    private:
-        const ServerSocket* _socket{nullptr};
-
-    private:
-        void update() override
-        {
-            while (isRunningUnlocked())
-            {
-                RT_GUARD_CHECK_VOID(_socket && _socket->isValid())
-
-                Connection client;
-                if (const PlatformSocket sock = Net::accept(_socket->_sock, client);
-                    sock != InvalidSocket)
-                {
-                    _socket->connected(sock);
-                    Net::close(sock);
-                }
-                else
-                {
-                    // non-blocking, so exit signal handlers can
-                    // process an exit gracefully.
-                    Thread::Thread::yield();
-                }
-            }
-        }
-
-    public:
-        explicit ServerThread(const ServerSocket* parent) :
-            _socket(parent)
-        {
-        }
-    };
-
     ServerSocket::ServerSocket(const String&  ipv4,
                                const uint16_t port,
                                const uint16_t backlog)
@@ -87,7 +51,6 @@ namespace Rt2::Sockets
             if (!isValid()) throw Exception("failed to create socket");
 
             setReuseAddress(true);
-            setBlocking(false);
 
             setMaxReceiveBuffer(Default::IoBufferSize);
             setMaxSendBuffer(Default::IoBufferSize);
@@ -132,36 +95,33 @@ namespace Rt2::Sockets
 
     void ServerSocket::run()
     {
-        if (!_main)
-            start();
+        RT_GUARD_CHECK_VOID(_main)
+        while (_running)
+            Thread::Thread::yield();
+        destroy();
+    }
 
-        if (_main)
-        {
-            while (_running) Thread::Thread::yield();
-            destroy();
-        }
+    void ServerSocket::run(const Update& up)
+    {
+        RT_GUARD_CHECK_VOID(_main && up)
+        while (_running) 
+            up();
+        destroy();
     }
 
     void ServerSocket::stop()
     {
-        auto lock = Thread::ScopeLock(&_mutex);
         _running = false;
     }
 
-    void ServerSocket::connect(const ConnectionAccepted& onAccept)
+    void ServerSocket::connect(const Accept& onAccept)
     {
         _accepted = onAccept;
     }
 
-    void ServerSocket::signal()
+    Accept ServerSocket::accept()
     {
-        //(void)std::raise(SIGINT);
-    }
-
-    void ServerSocket::connected(const PlatformSocket& socket) const
-    {
-        if (_accepted)
-            _accepted(socket);
+        return _accepted;
     }
 
 }  // namespace Rt2::Sockets

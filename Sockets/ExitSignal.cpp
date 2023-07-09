@@ -22,21 +22,26 @@
 #include "Sockets/ExitSignal.h"
 #include <csignal>
 
+#include "Utils/Console.h"
+
 namespace Rt2::Sockets
 {
     ExitSignal* ExitSignal::_signal = nullptr;
+    ExitSignal::Signal ExitSignal::_function = nullptr;
 
     void ExitSignal::signalMethod(int)
     {
         if (_signal)
             _signal->_signaled = true;
+        if (_function)
+            _function();
     }
 
     ExitSignal::ExitSignal()
     {
         _signal = this;
-        (void)signal(SIGINT, signalMethod);
-        (void)signal(SIGTERM, signalMethod);
+        (void)std::signal(SIGINT, signalMethod);
+        (void)std::signal(SIGTERM, signalMethod);
     }
 
     ExitSignal::~ExitSignal()
@@ -44,4 +49,13 @@ namespace Rt2::Sockets
         _signal = nullptr;
     }
 
+    void ExitSignal::signal()
+    {
+        (void)std::raise(SIGINT);
+    }
+
+    void ExitSignal::bind(const Signal& fn)
+    {
+        _function = fn;
+    }
 }  // namespace Rt2::Sockets

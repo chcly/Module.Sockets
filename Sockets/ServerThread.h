@@ -20,37 +20,25 @@
 -------------------------------------------------------------------------------
 */
 #pragma once
-#include <functional>
+#include "Sockets/Socket.h"
+#include "Thread/Runner.h"
 
 namespace Rt2::Sockets
 {
-    class ExitSignal
+    class ServerSocket;
+
+    class ServerThread final : public Thread::Runner
     {
     private:
-        using Signal = std::function<void()>;
+        ServerSocket* _owner{nullptr};
 
     private:
-        static ExitSignal* _signal;
-        bool               _signaled{false};
-        static Signal      _function;
-
-        static void signalMethod(int);
+        void update() override;
 
     public:
-        explicit ExitSignal();
+        explicit ServerThread(ServerSocket* owner);
 
-        ~ExitSignal();
-
-        static void signal();
-
-        static void bind(const Signal& fn);
-
-        bool signaled() const;
+        const PlatformSocket& socket() const;
     };
-
-    inline bool ExitSignal::signaled() const
-    {
-        return _signaled;
-    }
 
 }  // namespace Rt2::Sockets

@@ -52,6 +52,7 @@ namespace Rt2::Sockets
     {
         constexpr size_t IoBufferSize  = 0x800;
         constexpr int    SocketTimeOut = 1000;
+        constexpr int    AcceptTimeOut = 0x00;
     }  // namespace Default
 
     class Connection;
@@ -229,6 +230,8 @@ namespace Rt2::Sockets
                               SocketOption          option);
 
         static void ensureInitialized();
+
+        static bool isValidIpv4(const String& address);
 
         class Utils
         {

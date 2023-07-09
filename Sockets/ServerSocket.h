@@ -27,34 +27,32 @@
 namespace Rt2::Sockets
 {
     class ServerThread;
-    using ConnectionAccepted = std::function<void(const PlatformSocket& con)>;
+    using Accept = std::function<void(const PlatformSocket& con)>;
+    using Update = std::function<void()>;
 
     class ServerSocket final : public Socket
     {
     private:
-        friend class ServerThread;
-        Thread::Mutex      _mutex;
-        ServerThread*      _main{nullptr};
-        ConnectionAccepted _accepted;
-        bool               _running{false};
+        ServerThread* _main{nullptr};
+        Accept        _accepted;
+        bool          _running{false};
 
     public:
         ServerSocket(const String& ipv4, uint16_t port, uint16_t backlog = 0x100);
         ~ServerSocket() override;
 
         void run();
+        void run(const Update& up);
 
         void stop();
 
-        void connect(const ConnectionAccepted& onAccept);
+        void connect(const Accept& onAccept);
 
-        static void signal();
+        Accept accept();
 
     private:
-        void connected(const PlatformSocket& socket) const;
-
         void open(const String& ipv4, uint16_t port, uint16_t backlog);
-        
+
         void start();
 
         void destroy();

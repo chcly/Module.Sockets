@@ -3,9 +3,10 @@
 #include "Sockets/PlatformSocket.h"
 #include "Sockets/ServerSocket.h"
 #include "Sockets/SocketStream.h"
+#include "Thread/Thread.h"
 #include "Utils/Console.h"
 #include "gtest/gtest.h"
-//#define SpecificLocalTesting 0
+// #define SpecificLocalTesting 0
 
 using namespace Rt2;
 
@@ -109,7 +110,7 @@ GTEST_TEST(Sockets, GetHeaders)
     bs.write("HEAD / HTTP/1.1\r\n\r\n");
 
     InputSocketStream is(sock);
-    //is.setBlockSize(1124); // for testing blocking 
+    // is.setBlockSize(1124); // for testing blocking
     Console::hexdump(is.string());
 }
 
@@ -133,11 +134,21 @@ GTEST_TEST(Sockets, LocalLink)
             si.get(msg);
             EXPECT_EQ(msg, "World");
 
+            si.get(msg);
+            const int v = Char::toInt32(msg);
             EXPECT_TRUE(si.eof());
-            ss.stop();
+            if (v >= 99) ss.stop();
         });
-    const ClientSocket cs("127.0.0.1", 8080);
-    cs.write("Hello World");
-    ss.run();
+
+    int i = 0;
+    ss.run(
+        [&i]
+        {
+            const ClientSocket cs("127.0.0.1", 8080);
+            cs.write(Su::join("Hello World ", i));
+            ++i;
+            Thread::Thread::yield();
+        });
     EXPECT_TRUE(connected);
+    EXPECT_LT(i, 200);
 }

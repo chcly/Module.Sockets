@@ -23,7 +23,6 @@
 #include <cmath>
 #include <cstdio>
 #include <iostream>
-#include "Connection.h"
 #include "Thread/Thread.h"
 #include "Utils/Char.h"
 #include "Utils/Definitions.h"
@@ -203,10 +202,7 @@ namespace Rt2::Sockets
 
         int rc = -1;
         if (poll(sock, timeout, Write))
-        {
             rc = send(sock, (const char*)ptr, (int)sizeInBytes, 0);
-            Thread::Thread::yield();
-        }
         return rc;
     }
 
@@ -473,23 +469,29 @@ namespace Rt2::Sockets
         return valCheck <= 255;
     }
 
-    uint32_t Net::Utils::asciiToNetworkIpV4(const String& inp)
+    bool Net::isValidIpv4(const String& address)
     {
-        if (inp.empty())  // use current
-            return 0;
+        if (address.empty())
+            return false;
 
         StringArray sa;
-        StringUtils::splitRejectEmpty(sa, inp, '.');
+        Su::splitRejectEmpty(sa, address, '.');
 
         if (sa.size() != 4)
-            throw Exception("Invalid IpV4 address");
+            return false;
 
         bool stat = isOnlyDecimal(sa[0]);
         stat      = stat && isOnlyDecimal(sa[1]);
         stat      = stat && isOnlyDecimal(sa[2]);
         stat      = stat && isOnlyDecimal(sa[3]);
+        return stat;
+    }
 
-        if (!stat)
+    uint32_t Net::Utils::asciiToNetworkIpV4(const String& inp)
+    {
+        if (inp.empty()) return 0;
+
+        if (!isValidIpv4(inp))
             throw Exception("Invalid IpV4 address: ", inp);
 
         char buf[33]{};

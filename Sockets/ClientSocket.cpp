@@ -21,7 +21,6 @@
 */
 #include "Sockets/ClientSocket.h"
 #include "SocketStream.h"
-#include "Sockets/Connection.h"
 #include "Utils/Exception.h"
 #include "Utils/LogFile.h"
 #include "Utils/Streams/StreamBase.h"
@@ -65,9 +64,30 @@ namespace Rt2::Sockets
     {
         try
         {
-            setFamily(AddressFamilyINet);
-            setType(SocketStream);
-            setProtocol(ProtocolIpTcp);
+            String host;
+            if (Net::isValidIpv4(ipv4))
+            {
+                host = ipv4;
+
+                setFamily(AddressFamilyINet);
+                setType(SocketStream);
+                setProtocol(ProtocolIpTcp);
+            }
+            else
+            {
+                Host h;
+                if (const auto en = HostEnumerator(ipv4);
+                    en.match(h, AddressFamilyINet))
+                {
+                    host = h.address;
+                    setFamily(AddressFamilyINet);
+                    setType(h.type);
+                    setProtocol(h.protocol);
+                }
+                else
+                    throw Exception("unknown host ", ipv4);
+            }
+
             create();
             if (!isValid())
                 throw Exception("failed to create socket");
@@ -78,8 +98,8 @@ namespace Rt2::Sockets
             setSendTimeout(Default::SocketTimeOut);
             setReceiveTimeout(Default::SocketTimeOut);
 
-            if (Net::connect(_sock, ipv4, port) != OkStatus)
-                throw Exception("failed to connect to ", ipv4, ':', port);
+            if (Net::connect(_sock, host, port) != OkStatus)
+                throw Exception("failed to connect to ", host, ':', port);
         }
         catch (Exception& ex)
         {
