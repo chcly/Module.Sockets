@@ -24,15 +24,20 @@
 
 namespace Rt2::Sockets
 {
+
+    typedef void (*SignalHandler)(int);
+
     class ExitSignal
     {
     private:
         using Signal = std::function<void()>;
 
     private:
-        static ExitSignal* _signal;
-        bool               _signaled{false};
-        static Signal      _function;
+        static ExitSignal*   _signal;
+        static SignalHandler _prevInt;
+        static SignalHandler _prevTerm;
+        static Signal        _function;
+        bool                 _signaled{false};
 
         static void signalMethod(int);
 
